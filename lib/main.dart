@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:task_flow/core/di/injection_container.dart' as di;
-import 'package:task_flow/features/auth/presentation/splash.dart';
+import 'package:task_flow/core/network/connectivity_cubit.dart';
+import 'package:task_flow/core/router/app_router.dart';
+import 'package:task_flow/core/theme/app_theme.dart';
+import 'package:task_flow/core/theme/theme_cubit.dart';
+import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,20 +21,46 @@ class TaskFlowApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const TaskFlowAppMaterial();
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<ThemeCubit>(create: (_) => di.sl<ThemeCubit>()),
+        BlocProvider<SessionCubit>(create: (_) => di.sl<SessionCubit>()),
+        BlocProvider<ConnectivityCubit>(
+          create: (_) => di.sl<ConnectivityCubit>(),
+        ),
+      ],
+      child: const TaskFlowAppMaterial(),
+    );
   }
 }
 
-class TaskFlowAppMaterial extends StatelessWidget {
+class TaskFlowAppMaterial extends StatefulWidget {
   const TaskFlowAppMaterial({super.key});
 
   @override
+  State<TaskFlowAppMaterial> createState() => _TaskFlowAppMaterialState();
+}
+
+class _TaskFlowAppMaterialState extends State<TaskFlowAppMaterial> {
+  late final AppRouter _appRouter;
+
+  @override
+  void initState() {
+    super.initState();
+    _appRouter = AppRouter(context.read<SessionCubit>());
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    final themeMode = context.watch<ThemeCubit>().state;
+
+    return MaterialApp.router(
       title: 'TaskFlow',
       debugShowCheckedModeBanner: false,
-
-      home: Splash(),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
+      routerConfig: _appRouter.router,
     );
   }
 }
