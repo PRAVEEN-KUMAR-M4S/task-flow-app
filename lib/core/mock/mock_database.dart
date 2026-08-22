@@ -5,6 +5,16 @@ import 'package:flutter/services.dart';
 import 'package:task_flow/core/constants/app_constants.dart';
 import 'package:task_flow/core/error/exceptions.dart';
 
+/// In-memory, mutable stand-in for a remote database, seeded once from
+/// `assets/mock_data/mock-data.json`.
+///
+/// Every data source reads and writes through this single instance so that a
+/// mutation made through one feature (e.g. creating a task) is immediately
+/// visible to another (e.g. a project's task counts). Previously each data
+/// source parsed the asset into its own private copy, so the copies diverged.
+///
+/// Rows are kept as raw `Map<String, dynamic>` exactly as they appear in the
+/// asset; mapping to models/entities stays in the data layer.
 class MockDatabase {
   MockDatabase({AssetBundle? bundle}) : _bundle = bundle ?? rootBundle;
 
@@ -13,6 +23,10 @@ class MockDatabase {
   // ─── Tables (keyed by primary key, insertion-ordered) ──────────────────────
   final Map<String, Map<String, dynamic>> organizations = {};
   final Map<String, Map<String, dynamic>> users = {};
+  final Map<String, Map<String, dynamic>> projects = {};
+  final Map<String, Map<String, dynamic>> tasks = {};
+  final Map<String, Map<String, dynamic>> comments = {};
+  final Map<String, Map<String, dynamic>> notifications = {};
 
   /// `org_members` has no `id` column in the asset, so it is stored as a list
   /// keyed by the natural composite key (org_id, user_id).
@@ -44,8 +58,7 @@ class MockDatabase {
     } catch (error) {
       _loading = null;
       throw ServerException(
-        message:
-            'Unable to load mock data from '
+        message: 'Unable to load mock data from '
             '"${AppConstants.mockDataAsset}". ($error)',
       );
     }
@@ -57,6 +70,10 @@ class MockDatabase {
   void _seed(Map<String, dynamic> data) {
     _fill(organizations, data['organizations']);
     _fill(users, data['users']);
+    _fill(projects, data['projects']);
+    _fill(tasks, data['tasks']);
+    _fill(comments, data['comments']);
+    _fill(notifications, data['notifications']);
 
     orgMembers
       ..clear()
@@ -67,7 +84,10 @@ class MockDatabase {
     );
   }
 
-  static void _fill(Map<String, Map<String, dynamic>> table, Object? raw) {
+  static void _fill(
+    Map<String, Map<String, dynamic>> table,
+    Object? raw,
+  ) {
     table.clear();
     for (final row in _rows(raw)) {
       final id = row['id'];
@@ -100,6 +120,17 @@ class MockDatabase {
   List<Map<String, dynamic>> membersOf(String orgId) =>
       orgMembers.where((row) => row['org_id'] == orgId).toList();
 
+  /// The organization a project belongs to, used for org-scoped authorization.
+  String? orgIdOfProject(String projectId) =>
+      projects[projectId]?['org_id'] as String?;
+
+  /// The organization a task belongs to, resolved through its project.
+  String? orgIdOfTask(String taskId) {
+    final projectId = tasks[taskId]?['project_id'] as String?;
+    if (projectId == null) return null;
+    return orgIdOfProject(projectId);
+  }
+
   /// Test-credential rows from `auth_mock.test_credentials`.
   List<Map<String, dynamic>> get testCredentials =>
       _rows(authMock['test_credentials']);
@@ -107,8 +138,7 @@ class MockDatabase {
   /// The canned token payload from `auth_mock.mock_login_response`.
   Map<String, dynamic> get mockLoginResponse {
     final raw = authMock['mock_login_response'];
-    if (raw is Map)
-      return Map<String, dynamic>.from(raw.cast<String, dynamic>());
+    if (raw is Map) return Map<String, dynamic>.from(raw.cast<String, dynamic>());
     throw const ServerException(
       message: 'Mock data is missing "auth_mock.mock_login_response".',
     );
@@ -120,6 +150,10 @@ class MockDatabase {
   void reset() {
     organizations.clear();
     users.clear();
+    projects.clear();
+    tasks.clear();
+    comments.clear();
+    notifications.clear();
     orgMembers.clear();
     authMock = const {};
     _isLoaded = false;

@@ -8,6 +8,12 @@ import 'package:task_flow/features/auth/presentation/screens/login_screen.dart';
 import 'package:task_flow/features/auth/presentation/screens/register_screen.dart';
 import 'package:task_flow/features/auth/presentation/screens/splash_screen.dart';
 import 'package:task_flow/features/home/presentation/screens/home_screen.dart';
+import 'package:task_flow/features/projects/domain/entities/project.dart';
+import 'package:task_flow/features/projects/presentation/screens/project_detail_screen.dart';
+import 'package:task_flow/features/projects/presentation/screens/project_form_screen.dart';
+import 'package:task_flow/features/tasks/domain/entities/task_entity.dart';
+import 'package:task_flow/features/tasks/presentation/screens/task_detail_screen.dart';
+import 'package:task_flow/features/tasks/presentation/screens/task_form_screen.dart';
 
 class AppRouter {
   final SessionCubit sessionCubit;
@@ -60,6 +66,38 @@ class AppRouter {
       GoRoute(
         path: AppConstants.routeHome,
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: AppConstants.routeProjectDetail,
+        builder: (context, state) {
+          final projectId = state.pathParameters['projectId']!;
+          return ProjectDetailScreen(projectId: projectId);
+        },
+      ),
+      GoRoute(
+        path: AppConstants.routeProjectForm,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          final project = extra['project'] as Project?;
+          final isAdmin = extra['isAdmin'] as bool? ?? false;
+          return ProjectFormScreen(project: project, isAdmin: isAdmin);
+        },
+      ),
+      GoRoute(
+        path: AppConstants.routeTaskDetail,
+        builder: (context, state) {
+          final taskId = state.pathParameters['taskId']!;
+          return TaskDetailScreen(taskId: taskId);
+        },
+      ),
+      GoRoute(
+        path: AppConstants.routeTaskForm,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          final projectId = extra['projectId'] as String? ?? '';
+          final task = extra['task'] as TaskEntity?;
+          return TaskFormScreen(projectId: projectId, task: task);
+        },
       ),
     ],
   );

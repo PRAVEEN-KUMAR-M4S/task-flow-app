@@ -1,0 +1,485 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:task_flow/core/constants/app_constants.dart';
+import 'package:task_flow/core/di/injection_container.dart';
+import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
+import 'package:task_flow/features/tasks/domain/entities/task_entity.dart';
+import 'package:task_flow/features/tasks/presentation/bloc/task_bloc.dart';
+import 'package:task_flow/features/tasks/presentation/cubit/task_detail_cubit.dart';
+import 'package:task_flow/features/tasks/presentation/widgets/assignee_picker_bottom_sheet.dart';
+import 'package:task_flow/features/tasks/presentation/widgets/priority_badge.dart';
+import 'package:task_flow/features/tasks/presentation/widgets/status_chip.dart';
+import 'package:task_flow/features/users/domain/entities/org_member.dart';
+import 'package:task_flow/shared/widgets/app_avatar.dart';
+import 'package:task_flow/shared/widgets/confirm_dialog.dart';
+import 'package:task_flow/shared/widgets/error_view.dart';
+import 'package:task_flow/shared/widgets/loading_view.dart';
+
+class TaskDetailScreen extends StatelessWidget {
+  final String taskId;
+
+  const TaskDetailScreen({super.key, required this.taskId});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => sl<TaskDetailCubit>()..loadTask(taskId),
+        ),
+        BlocProvider(
+          create: (_) => sl<TaskBloc>(),
+        ),
+      ],
+      child: _TaskDetailView(taskId: taskId),
+    );
+  }
+}
+
+class _TaskDetailView extends StatefulWidget {
+  final String taskId;
+
+  const _TaskDetailView({required this.taskId});
+
+  @override
+  State<_TaskDetailView> createState() => _TaskDetailViewState();
+}
+
+class _TaskDetailViewState extends State<_TaskDetailView> {
+  late Future<List<Map<String, dynamic>>> _commentsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _commentsFuture = _loadComments();
+  }
+
+  Future<List<Map<String, dynamic>>> _loadComments() async {
+    final jsonString = await rootBundle.loadString(AppConstants.mockDataAsset);
+    final data = json.decode(jsonString) as Map<String, dynamic>;
+    final allComments = (data['comments'] as List).cast<Map<String, dynamic>>();
+    final users = (data['users'] as List).cast<Map<String, dynamic>>();
+
+    final taskComments = allComments.where((c) => c['task_id'] == widget.taskId).toList();
+
+    return taskComments.map((comment) {
+      final userId = comment['user_id'] as String;
+      final user = users.firstWhere((u) => u['id'] == userId, orElse: () => <String, dynamic>{});
+      return {
+        ...comment,
+        'user_name': user['name'] ?? 'Unknown User',
+        'user_avatar': user['avatar_url'],
+      };
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final user = context.read<SessionCubit>().currentUser;
+    final isAdmin = user?.isAdmin ?? false;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Task Details'),
+        actions: [
+          BlocBuilder<TaskDetailCubit, TaskDetailState>(
+            builder: (context, state) {
+              if (state is TaskDetailSuccess) {
+                return PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      context.push(
+                        '/tasks/form',
+                        extra: {
+                          'projectId': state.task.projectId,
+                          'task': state.task,
+                        },
+                      ).then((_) {
+                        if (context.mounted) {
+                          context.read<TaskDetailCubit>().refresh(widget.taskId);
+                        }
+                      });
+                    } else if (value == 'delete') {
+                      _confirmDelete(context, state.task);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, size: 20),
+                          SizedBox(width: 8),
+                          Text('Edit Task'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline_rounded, color: Colors.red, size: 20),
+                          SizedBox(width: 8),
+                          Text('Delete Task', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return const SizedBox();
+            },
+          ),
+        ],
+      ),
+      body: BlocConsumer<TaskBloc, TaskState>(
+        listener: (context, state) {
+          if (state is TaskError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.failure.message),
+                backgroundColor: theme.colorScheme.error,
+              ),
+            );
+            // Refresh task detail to undo UI changes if they failed
+            context.read<TaskDetailCubit>().refresh(widget.taskId);
+          }
+        },
+        builder: (context, taskState) {
+          return BlocBuilder<TaskDetailCubit, TaskDetailState>(
+            builder: (context, state) {
+              if (state is TaskDetailLoading) {
+                return const LoadingView();
+              }
+              if (state is TaskDetailError) {
+                return ErrorView(
+                  message: state.failure.message,
+                  onRetry: () => context.read<TaskDetailCubit>().loadTask(widget.taskId),
+                );
+              }
+              if (state is TaskDetailSuccess) {
+                final task = state.task;
+
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    context.read<TaskDetailCubit>().refresh(widget.taskId);
+                    setState(() {
+                      _commentsFuture = _loadComments();
+                    });
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title
+                        Text(
+                          task.title,
+                          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 12),
+                        // Status & Priority
+                        Row(
+                          children: [
+                            StatusChip(status: task.status),
+                            const SizedBox(width: 8),
+                            PriorityBadge(priority: task.priority),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        // Quick actions: Change status & Assignee
+                        Row(
+                          children: [
+                            // Change Status Dropdown
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'STATUS',
+                                    style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  DropdownButtonFormField<String>(
+                                    value: task.status,
+                                    isExpanded: true,
+                                    decoration: const InputDecoration(
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    ),
+                                    items: const [
+                                      DropdownMenuItem(value: 'todo', child: Text('Todo')),
+                                      DropdownMenuItem(value: 'in_progress', child: Text('In Progress')),
+                                      DropdownMenuItem(value: 'blocked', child: Text('Blocked')),
+                                      DropdownMenuItem(value: 'done', child: Text('Done')),
+                                    ],
+                                    onChanged: (newStatus) {
+                                      if (newStatus != null) {
+                                        context.read<TaskBloc>().add(TaskStatusUpdated(
+                                              taskId: task.id,
+                                              status: newStatus,
+                                            ));
+                                        // Optmistic update detail state
+                                        context.read<TaskDetailCubit>().emit(
+                                              TaskDetailSuccess(task.copyWith(status: newStatus)),
+                                            );
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            // Assignee
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'ASSIGNEE',
+                                    style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  InkWell(
+                                    onTap: () => _pickAssignee(context, task, user?.orgId ?? ''),
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          AppAvatar(
+                                            imageUrl: task.assigneeAvatarUrl,
+                                            name: task.assigneeName ?? '?',
+                                            radius: 12,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              task.assigneeName ?? 'Unassigned',
+                                              style: theme.textTheme.bodyMedium,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const Icon(Icons.arrow_drop_down),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        // Description
+                        Text(
+                          'DESCRIPTION',
+                          style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            task.description.isEmpty ? 'No description provided.' : task.description,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        // Due date and tags
+                        Row(
+                          children: [
+                            if (task.dueDate != null)
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'DUE DATE',
+                                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.calendar_today_rounded, size: 16, color: Colors.grey),
+                                        const SizedBox(width: 8),
+                                        Text(DateFormat('MMM dd, yyyy').format(task.dueDate!)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        if (task.tags.isNotEmpty) ...[
+                          Text(
+                            'TAGS',
+                            style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            children: task.tags.map((t) => Chip(label: Text(t))).toList(),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                        const Divider(),
+                        const SizedBox(height: 16),
+                        // Comments section
+                        Text(
+                          'COMMENTS',
+                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 12),
+                        FutureBuilder<List<Map<String, dynamic>>>(
+                          future: _commentsFuture,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+                            final comments = snapshot.data ?? [];
+                            if (comments.isEmpty) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                child: Center(
+                                  child: Text(
+                                    'No comments yet.',
+                                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                                  ),
+                                ),
+                              );
+                            }
+                            return ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: comments.length,
+                              separatorBuilder: (context, index) => const SizedBox(height: 12),
+                              itemBuilder: (context, index) {
+                                final comment = comments[index];
+                                final date = DateTime.parse(comment['created_at'] as String);
+                                return Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    AppAvatar(
+                                      imageUrl: comment['user_avatar'] as String?,
+                                      name: comment['user_name'] as String,
+                                      radius: 16,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                comment['user_name'] as String,
+                                                style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                                              ),
+                                              Text(
+                                                DateFormat('MMM d, h:mm a').format(date),
+                                                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(comment['content'] as String),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 32),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox();
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _pickAssignee(BuildContext context, TaskEntity task, String orgId) async {
+    final OrgMember? selectedMember = await showModalBottomSheet<OrgMember?>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return FractionallySizedBox(
+          heightFactor: 0.6,
+          child: AssigneePickerBottomSheet(
+            orgId: orgId,
+            selectedAssigneeId: task.assigneeId,
+          ),
+        );
+      },
+    );
+
+    if (context.mounted) {
+      context.read<TaskBloc>().add(TaskAssigned(
+            taskId: task.id,
+            assigneeId: selectedMember?.userId,
+            orgId: orgId,
+          ));
+
+      // Optimistically update the details view
+      context.read<TaskDetailCubit>().emit(
+            TaskDetailStateUpdateHelper.fromSuccessState(
+              context.read<TaskDetailCubit>().state,
+              task.copyWith(
+                assigneeId: selectedMember?.userId,
+                assigneeName: selectedMember?.name,
+                assigneeAvatarUrl: selectedMember?.avatarUrl,
+              ),
+            ),
+          );
+    }
+  }
+
+  Future<void> _confirmDelete(BuildContext context, TaskEntity task) async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Delete Task',
+      message: 'Are you sure you want to delete this task? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      isDestructive: true,
+    );
+
+    if (confirmed == true && context.mounted) {
+      context.read<TaskBloc>().add(TaskDeleted(task.id));
+      context.pop();
+    }
+  }
+}
+
+class TaskDetailStateUpdateHelper {
+  static TaskDetailState fromSuccessState(TaskDetailState state, TaskEntity updatedTask) {
+    if (state is TaskDetailSuccess) {
+      return TaskDetailSuccess(updatedTask);
+    }
+    return state;
+  }
+}

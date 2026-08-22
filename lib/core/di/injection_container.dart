@@ -17,6 +17,39 @@ import 'package:task_flow/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:task_flow/features/auth/domain/usecases/refresh_token_usecase.dart';
 import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
 
+// Projects
+import 'package:task_flow/features/projects/data/datasources/project_local_datasource.dart';
+import 'package:task_flow/features/projects/data/repositories/project_repository_impl.dart';
+import 'package:task_flow/features/projects/domain/repositories/project_repository.dart';
+import 'package:task_flow/features/projects/domain/usecases/create_project_usecase.dart';
+import 'package:task_flow/features/projects/domain/usecases/delete_project_usecase.dart';
+import 'package:task_flow/features/projects/domain/usecases/get_project_detail_usecase.dart';
+import 'package:task_flow/features/projects/domain/usecases/get_projects_usecase.dart';
+import 'package:task_flow/features/projects/domain/usecases/update_project_usecase.dart';
+import 'package:task_flow/features/projects/presentation/cubit/project_detail_cubit.dart';
+import 'package:task_flow/features/projects/presentation/cubit/project_list_cubit.dart';
+
+// Tasks
+import 'package:task_flow/features/tasks/data/datasources/task_local_datasource.dart';
+import 'package:task_flow/features/tasks/data/repositories/task_repository_impl.dart';
+import 'package:task_flow/features/tasks/domain/repositories/task_repository.dart';
+import 'package:task_flow/features/tasks/domain/usecases/assign_task_usecase.dart';
+import 'package:task_flow/features/tasks/domain/usecases/create_task_usecase.dart';
+import 'package:task_flow/features/tasks/domain/usecases/delete_task_usecase.dart';
+import 'package:task_flow/features/tasks/domain/usecases/get_task_detail_usecase.dart';
+import 'package:task_flow/features/tasks/domain/usecases/get_tasks_usecase.dart';
+import 'package:task_flow/features/tasks/domain/usecases/update_task_status_usecase.dart';
+import 'package:task_flow/features/tasks/domain/usecases/update_task_usecase.dart';
+import 'package:task_flow/features/tasks/presentation/bloc/task_bloc.dart';
+import 'package:task_flow/features/tasks/presentation/cubit/task_detail_cubit.dart';
+
+// Users
+import 'package:task_flow/features/users/data/datasources/user_local_datasource.dart';
+import 'package:task_flow/features/users/data/repositories/user_repository_impl.dart';
+import 'package:task_flow/features/users/domain/repositories/user_repository.dart';
+import 'package:task_flow/features/users/domain/usecases/get_org_members_usecase.dart';
+import 'package:task_flow/features/users/domain/usecases/validate_org_membership_usecase.dart';
+
 final sl = GetIt.instance;
 
 Future<void> init() async {
@@ -26,11 +59,6 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<SecureStorageService>(
     () => SecureStorageService(storage: sl()),
-  );
-
-  // ─── Repositories ─────────────────────────────────────────────────────────
-  sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(datasource: sl(), secureStorage: sl()),
   );
 
   sl.registerLazySingleton<ConnectivityCubit>(() => ConnectivityCubit());
@@ -48,6 +76,29 @@ Future<void> init() async {
       errorSimulator: sl(),
     ),
   );
+  sl.registerLazySingleton<ProjectLocalDatasource>(
+    () => ProjectLocalDatasourceImpl(database: sl(), errorSimulator: sl()),
+  );
+  sl.registerLazySingleton<TaskLocalDatasource>(
+    () => TaskLocalDatasourceImpl(database: sl(), errorSimulator: sl()),
+  );
+  sl.registerLazySingleton<UserLocalDatasource>(
+    () => UserLocalDatasourceImpl(database: sl(), errorSimulator: sl()),
+  );
+
+  // ─── Repositories ─────────────────────────────────────────────────────────
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(datasource: sl(), secureStorage: sl()),
+  );
+  sl.registerLazySingleton<ProjectRepository>(
+    () => ProjectRepositoryImpl(datasource: sl(), connectivity: sl()),
+  );
+  sl.registerLazySingleton<TaskRepository>(
+    () => TaskRepositoryImpl(datasource: sl(), connectivity: sl()),
+  );
+  sl.registerLazySingleton<UserRepository>(
+    () => UserRepositoryImpl(datasource: sl()),
+  );
 
   // ─── Services ─────────────────────────────────────────────────────────────
   sl.registerLazySingleton<AuthorizationService>(
@@ -61,6 +112,36 @@ Future<void> init() async {
   sl.registerLazySingleton(() => RefreshTokenUseCase(sl()));
   sl.registerLazySingleton(() => GetCachedSessionUseCase(sl()));
 
+  // Projects Use Cases
+  sl.registerLazySingleton(() => GetProjectsUseCase(sl(), authorization: sl()));
+  sl.registerLazySingleton(
+    () => GetProjectDetailUseCase(sl(), authorization: sl()),
+  );
+  sl.registerLazySingleton(
+    () => CreateProjectUseCase(sl(), authorization: sl()),
+  );
+  sl.registerLazySingleton(
+    () => UpdateProjectUseCase(sl(), authorization: sl()),
+  );
+  sl.registerLazySingleton(
+    () => DeleteProjectUseCase(sl(), authorization: sl()),
+  );
+
+  // Tasks Use Cases
+  sl.registerLazySingleton(() => GetTasksUseCase(sl()));
+  sl.registerLazySingleton(() => GetTaskDetailUseCase(sl()));
+  sl.registerLazySingleton(() => CreateTaskUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateTaskUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteTaskUseCase(sl()));
+  sl.registerLazySingleton(
+    () => AssignTaskUseCase(taskRepository: sl(), userRepository: sl()),
+  );
+  sl.registerLazySingleton(() => UpdateTaskStatusUseCase(sl()));
+
+  // Users Use Cases
+  sl.registerLazySingleton(() => GetOrgMembersUseCase(sl()));
+  sl.registerLazySingleton(() => ValidateOrgMembershipUseCase(sl()));
+
   // ─── Blocs / Cubits ────────────────────────────────────────────────────────
   sl.registerLazySingleton(
     () => SessionCubit(
@@ -71,4 +152,28 @@ Future<void> init() async {
       secureStorage: sl(),
     ),
   );
+
+  sl.registerFactory(
+    () => ProjectListCubit(
+      getProjectsUseCase: sl(),
+      createProjectUseCase: sl(),
+      updateProjectUseCase: sl(),
+      deleteProjectUseCase: sl(),
+    ),
+  );
+
+  sl.registerFactory(() => ProjectDetailCubit(getProjectDetailUseCase: sl()));
+
+  sl.registerFactory(
+    () => TaskBloc(
+      getTasksUseCase: sl(),
+      createTaskUseCase: sl(),
+      updateTaskUseCase: sl(),
+      deleteTaskUseCase: sl(),
+      assignTaskUseCase: sl(),
+      updateTaskStatusUseCase: sl(),
+    ),
+  );
+
+  sl.registerFactory(() => TaskDetailCubit(getTaskDetailUseCase: sl()));
 }

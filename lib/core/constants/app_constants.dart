@@ -66,4 +66,29 @@ class AppConstants {
   // ─── Domain Vocabulary ────────────────────────────────────────────────────
   static const String roleOrgAdmin = 'org_admin';
   static const String roleMember = 'member';
+
+  /// Task statuses, in workflow order. These are exactly the values present in
+  /// `mock-data.json` — note `review`, not `blocked`.
+  static const List<String> taskStatuses = ['todo', 'in_progress', 'review', 'done'];
+
+  /// Task priorities, lowest first. Again taken from the mock data — the top
+  /// band is `urgent`, not `critical`.
+  static const List<String> taskPriorities = ['low', 'medium', 'high', 'urgent'];
+
+  static const List<String> projectStatuses = ['active', 'completed', 'archived'];
+
+  /// Sentinel assignee filter value meaning "no assignee". A plain `null` can't
+  /// express it because `null` already means "don't filter by assignee".
+  static const String assigneeUnassigned = '__unassigned__';
+
+  /// Human-readable label for a snake_case status/priority token.
+  static String humanize(String token) {
+    if (token.isEmpty) return '';
+    return token
+        .split('_')
+        .map((word) => word.isEmpty
+            ? word
+            : '${word[0].toUpperCase()}${word.substring(1)}')
+        .join(' ');
+  }
 }
