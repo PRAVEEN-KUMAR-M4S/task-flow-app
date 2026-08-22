@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:task_flow/core/di/injection_container.dart' as di;
 import 'package:task_flow/core/network/connectivity_cubit.dart';
 import 'package:task_flow/core/router/app_router.dart';
+import 'package:task_flow/core/storage/hive_service.dart';
 import 'package:task_flow/core/theme/app_theme.dart';
 import 'package:task_flow/core/theme/theme_cubit.dart';
 import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
+import 'package:task_flow/features/notifications/presentation/cubit/notification_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Local Hive cache
+  await Hive.initFlutter();
+  await HiveService.openBoxes();
 
   // Initialize Dependency Injection
   await di.init();
@@ -23,10 +30,17 @@ class TaskFlowApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider<ThemeCubit>(create: (_) => di.sl<ThemeCubit>()),
-        BlocProvider<SessionCubit>(create: (_) => di.sl<SessionCubit>()),
+        BlocProvider<ThemeCubit>(
+          create: (_) => di.sl<ThemeCubit>(),
+        ),
+        BlocProvider<SessionCubit>(
+          create: (_) => di.sl<SessionCubit>(),
+        ),
         BlocProvider<ConnectivityCubit>(
           create: (_) => di.sl<ConnectivityCubit>(),
+        ),
+        BlocProvider<NotificationCubit>(
+          create: (_) => di.sl<NotificationCubit>(),
         ),
       ],
       child: const TaskFlowAppMaterial(),

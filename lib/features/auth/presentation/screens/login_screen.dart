@@ -44,9 +44,9 @@ class _LoginViewState extends State<_LoginView> {
   void _submit() {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<LoginCubit>().login(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
     }
   }
 
@@ -58,12 +58,10 @@ class _LoginViewState extends State<_LoginView> {
         if (state is LoginFailure) {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
-            ..showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: theme.colorScheme.error,
-              ),
-            );
+            ..showSnackBar(SnackBar(
+              content: Text(state.message),
+              backgroundColor: theme.colorScheme.error,
+            ));
         } else if (state is LoginSuccess) {
           context.go(AppConstants.routeHome);
         }
@@ -135,9 +133,7 @@ class _LoginViewState extends State<_LoginView> {
                         if (value == null || value.trim().isEmpty) {
                           return 'Email is required';
                         }
-                        if (!RegExp(
-                          r'^[^@]+@[^@]+\.[^@]+',
-                        ).hasMatch(value.trim())) {
+                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
                           return 'Enter a valid email address';
                         }
                         return null;
@@ -236,6 +232,11 @@ class _LoginViewState extends State<_LoginView> {
                               ),
                             ],
                           ),
+                          const SizedBox(height: 8),
+                          _credentialRow(theme, 'Org A Admin', 'alice@alphacorp.com', 'Admin@123'),
+                          _credentialRow(theme, 'Org A Member', 'bob@alphacorp.com', 'Member@123'),
+                          _credentialRow(theme, 'Org B Admin', 'carol@betalabs.com', 'Admin@123'),
+                          _credentialRow(theme, 'Org B Member', 'david@betalabs.com', 'Member@123'),
                         ],
                       ),
                     ),
@@ -249,12 +250,7 @@ class _LoginViewState extends State<_LoginView> {
     );
   }
 
-  Widget _credentialRow(
-    ThemeData theme,
-    String role,
-    String email,
-    String password,
-  ) {
+  Widget _credentialRow(ThemeData theme, String role, String email, String password) {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Row(

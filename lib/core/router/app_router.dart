@@ -11,6 +11,7 @@ import 'package:task_flow/features/home/presentation/screens/home_screen.dart';
 import 'package:task_flow/features/projects/domain/entities/project.dart';
 import 'package:task_flow/features/projects/presentation/screens/project_detail_screen.dart';
 import 'package:task_flow/features/projects/presentation/screens/project_form_screen.dart';
+import 'package:task_flow/features/settings/presentation/screens/settings_screen.dart';
 import 'package:task_flow/features/tasks/domain/entities/task_entity.dart';
 import 'package:task_flow/features/tasks/presentation/screens/task_detail_screen.dart';
 import 'package:task_flow/features/tasks/presentation/screens/task_form_screen.dart';
@@ -26,8 +27,7 @@ class AppRouter {
     redirect: (context, state) {
       final sessionState = sessionCubit.state;
       final goingToSplash = state.matchedLocation == AppConstants.routeSplash;
-      final goingToAuth =
-          state.matchedLocation == AppConstants.routeLogin ||
+      final goingToAuth = state.matchedLocation == AppConstants.routeLogin ||
           state.matchedLocation == AppConstants.routeRegister;
 
       // During initial load / splash check
@@ -80,7 +80,10 @@ class AppRouter {
           final extra = state.extra as Map<String, dynamic>? ?? {};
           final project = extra['project'] as Project?;
           final isAdmin = extra['isAdmin'] as bool? ?? false;
-          return ProjectFormScreen(project: project, isAdmin: isAdmin);
+          return ProjectFormScreen(
+            project: project,
+            isAdmin: isAdmin,
+          );
         },
       ),
       GoRoute(
@@ -96,8 +99,15 @@ class AppRouter {
           final extra = state.extra as Map<String, dynamic>? ?? {};
           final projectId = extra['projectId'] as String? ?? '';
           final task = extra['task'] as TaskEntity?;
-          return TaskFormScreen(projectId: projectId, task: task);
+          return TaskFormScreen(
+            projectId: projectId,
+            task: task,
+          );
         },
+      ),
+      GoRoute(
+        path: AppConstants.routeSettings,
+        builder: (context, state) => const SettingsScreen(),
       ),
     ],
   );
@@ -108,9 +118,8 @@ class _GoRouterRefreshStream extends ChangeNotifier {
 
   _GoRouterRefreshStream(Stream<dynamic> stream) {
     notifyListeners();
-    _subscription = stream.asBroadcastStream().listen(
-      (dynamic _) => notifyListeners(),
-    );
+    _subscription =
+        stream.asBroadcastStream().listen((dynamic _) => notifyListeners());
   }
 
   @override

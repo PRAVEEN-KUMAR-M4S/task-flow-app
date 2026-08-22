@@ -50,16 +50,22 @@ import 'package:task_flow/features/users/domain/repositories/user_repository.dar
 import 'package:task_flow/features/users/domain/usecases/get_org_members_usecase.dart';
 import 'package:task_flow/features/users/domain/usecases/validate_org_membership_usecase.dart';
 
+// Notifications
+import 'package:task_flow/features/notifications/data/datasources/notification_local_datasource.dart';
+import 'package:task_flow/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:task_flow/features/notifications/domain/repositories/notification_repository.dart';
+import 'package:task_flow/features/notifications/domain/usecases/get_notifications_usecase.dart';
+import 'package:task_flow/features/notifications/domain/usecases/mark_notification_read_usecase.dart';
+import 'package:task_flow/features/notifications/presentation/cubit/notification_cubit.dart';
+
 final sl = GetIt.instance;
 
 Future<void> init() async {
   // ─── Core / Storage / Connectivity ─────────────────────────────────────────
   sl.registerLazySingleton<FlutterSecureStorage>(
-    () => const FlutterSecureStorage(),
-  );
+      () => const FlutterSecureStorage());
   sl.registerLazySingleton<SecureStorageService>(
-    () => SecureStorageService(storage: sl()),
-  );
+      () => SecureStorageService(storage: sl()));
 
   sl.registerLazySingleton<ConnectivityCubit>(() => ConnectivityCubit());
   sl.registerLazySingleton<ThemeCubit>(() => ThemeCubit());
@@ -69,41 +75,35 @@ Future<void> init() async {
   sl.registerLazySingleton<ErrorSimulator>(() => ErrorSimulator());
 
   // ─── Datasources ──────────────────────────────────────────────────────────
-  sl.registerLazySingleton<AuthLocalDatasource>(
-    () => AuthLocalDatasourceImpl(
-      secureStorage: sl(),
-      database: sl(),
-      errorSimulator: sl(),
-    ),
-  );
+  sl.registerLazySingleton<AuthLocalDatasource>(() => AuthLocalDatasourceImpl(
+      secureStorage: sl(), database: sl(), errorSimulator: sl()));
   sl.registerLazySingleton<ProjectLocalDatasource>(
-    () => ProjectLocalDatasourceImpl(database: sl(), errorSimulator: sl()),
-  );
+      () => ProjectLocalDatasourceImpl(database: sl(), errorSimulator: sl()));
   sl.registerLazySingleton<TaskLocalDatasource>(
-    () => TaskLocalDatasourceImpl(database: sl(), errorSimulator: sl()),
-  );
+      () => TaskLocalDatasourceImpl(database: sl(), errorSimulator: sl()));
   sl.registerLazySingleton<UserLocalDatasource>(
-    () => UserLocalDatasourceImpl(database: sl(), errorSimulator: sl()),
-  );
+      () => UserLocalDatasourceImpl(database: sl(), errorSimulator: sl()));
+  sl.registerLazySingleton<NotificationLocalDatasource>(() =>
+      NotificationLocalDatasourceImpl(database: sl(), errorSimulator: sl()));
 
   // ─── Repositories ─────────────────────────────────────────────────────────
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(datasource: sl(), secureStorage: sl()),
-  );
+      () => AuthRepositoryImpl(datasource: sl(), secureStorage: sl()));
   sl.registerLazySingleton<ProjectRepository>(
-    () => ProjectRepositoryImpl(datasource: sl(), connectivity: sl()),
-  );
+      () => ProjectRepositoryImpl(datasource: sl(), connectivity: sl()));
   sl.registerLazySingleton<TaskRepository>(
-    () => TaskRepositoryImpl(datasource: sl(), connectivity: sl()),
-  );
+      () => TaskRepositoryImpl(datasource: sl(), connectivity: sl()));
   sl.registerLazySingleton<UserRepository>(
-    () => UserRepositoryImpl(datasource: sl()),
-  );
+      () => UserRepositoryImpl(datasource: sl()));
+  sl.registerLazySingleton<NotificationRepository>(
+      () => NotificationRepositoryImpl(
+            datasource: sl(),
+            connectivity: sl(),
+          ));
 
   // ─── Services ─────────────────────────────────────────────────────────────
   sl.registerLazySingleton<AuthorizationService>(
-    () => AuthorizationService(authRepository: sl()),
-  );
+      () => AuthorizationService(authRepository: sl()));
 
   // ─── Use Cases ────────────────────────────────────────────────────────────
   // Auth Use Cases
@@ -113,19 +113,16 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetCachedSessionUseCase(sl()));
 
   // Projects Use Cases
-  sl.registerLazySingleton(() => GetProjectsUseCase(sl(), authorization: sl()));
   sl.registerLazySingleton(
-    () => GetProjectDetailUseCase(sl(), authorization: sl()),
-  );
+      () => GetProjectsUseCase(sl(), authorization: sl()));
   sl.registerLazySingleton(
-    () => CreateProjectUseCase(sl(), authorization: sl()),
-  );
+      () => GetProjectDetailUseCase(sl(), authorization: sl()));
   sl.registerLazySingleton(
-    () => UpdateProjectUseCase(sl(), authorization: sl()),
-  );
+      () => CreateProjectUseCase(sl(), authorization: sl()));
   sl.registerLazySingleton(
-    () => DeleteProjectUseCase(sl(), authorization: sl()),
-  );
+      () => UpdateProjectUseCase(sl(), authorization: sl()));
+  sl.registerLazySingleton(
+      () => DeleteProjectUseCase(sl(), authorization: sl()));
 
   // Tasks Use Cases
   sl.registerLazySingleton(() => GetTasksUseCase(sl()));
@@ -134,46 +131,53 @@ Future<void> init() async {
   sl.registerLazySingleton(() => UpdateTaskUseCase(sl()));
   sl.registerLazySingleton(() => DeleteTaskUseCase(sl()));
   sl.registerLazySingleton(
-    () => AssignTaskUseCase(taskRepository: sl(), userRepository: sl()),
-  );
+      () => AssignTaskUseCase(taskRepository: sl(), userRepository: sl()));
   sl.registerLazySingleton(() => UpdateTaskStatusUseCase(sl()));
 
   // Users Use Cases
   sl.registerLazySingleton(() => GetOrgMembersUseCase(sl()));
   sl.registerLazySingleton(() => ValidateOrgMembershipUseCase(sl()));
 
+  // Notifications Use Cases
+  sl.registerLazySingleton(() => GetNotificationsUseCase(sl()));
+  sl.registerLazySingleton(() => MarkNotificationReadUseCase(sl()));
+
   // ─── Blocs / Cubits ────────────────────────────────────────────────────────
-  sl.registerLazySingleton(
-    () => SessionCubit(
-      loginUseCase: sl(),
-      logoutUseCase: sl(),
-      refreshTokenUseCase: sl(),
-      getCachedSessionUseCase: sl(),
-      secureStorage: sl(),
-    ),
-  );
+  sl.registerLazySingleton(() => SessionCubit(
+        loginUseCase: sl(),
+        logoutUseCase: sl(),
+        refreshTokenUseCase: sl(),
+        getCachedSessionUseCase: sl(),
+        secureStorage: sl(),
+      ));
 
-  sl.registerFactory(
-    () => ProjectListCubit(
-      getProjectsUseCase: sl(),
-      createProjectUseCase: sl(),
-      updateProjectUseCase: sl(),
-      deleteProjectUseCase: sl(),
-    ),
-  );
+  sl.registerFactory(() => ProjectListCubit(
+        getProjectsUseCase: sl(),
+        createProjectUseCase: sl(),
+        updateProjectUseCase: sl(),
+        deleteProjectUseCase: sl(),
+      ));
 
-  sl.registerFactory(() => ProjectDetailCubit(getProjectDetailUseCase: sl()));
+  sl.registerFactory(() => ProjectDetailCubit(
+        getProjectDetailUseCase: sl(),
+      ));
 
-  sl.registerFactory(
-    () => TaskBloc(
-      getTasksUseCase: sl(),
-      createTaskUseCase: sl(),
-      updateTaskUseCase: sl(),
-      deleteTaskUseCase: sl(),
-      assignTaskUseCase: sl(),
-      updateTaskStatusUseCase: sl(),
-    ),
-  );
+  sl.registerFactory(() => TaskBloc(
+        getTasksUseCase: sl(),
+        createTaskUseCase: sl(),
+        updateTaskUseCase: sl(),
+        deleteTaskUseCase: sl(),
+        assignTaskUseCase: sl(),
+        updateTaskStatusUseCase: sl(),
+      ));
 
-  sl.registerFactory(() => TaskDetailCubit(getTaskDetailUseCase: sl()));
+  sl.registerFactory(() => TaskDetailCubit(
+        getTaskDetailUseCase: sl(),
+      ));
+
+  sl.registerLazySingleton(() => NotificationCubit(
+        getNotificationsUseCase: sl(),
+        markNotificationReadUseCase: sl(),
+        repository: sl(),
+      ));
 }

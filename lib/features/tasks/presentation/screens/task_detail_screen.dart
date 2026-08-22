@@ -67,8 +67,10 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
     final taskComments = allComments.where((c) => c['task_id'] == widget.taskId).toList();
 
     return taskComments.map((comment) {
-      final userId = comment['user_id'] as String;
-      final user = users.firstWhere((u) => u['id'] == userId, orElse: () => <String, dynamic>{});
+      final userId = comment['user_id'] as String?;
+      final user = userId != null
+          ? users.firstWhere((u) => u['id'] == userId, orElse: () => <String, dynamic>{})
+          : <String, dynamic>{};
       return {
         ...comment,
         'user_name': user['name'] ?? 'Unknown User',
@@ -371,13 +373,14 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
                               separatorBuilder: (context, index) => const SizedBox(height: 12),
                               itemBuilder: (context, index) {
                                 final comment = comments[index];
-                                final date = DateTime.parse(comment['created_at'] as String);
+                                final createdAt = comment['created_at'] as String?;
+                                final date = createdAt != null ? DateTime.tryParse(createdAt) : null;
                                 return Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     AppAvatar(
                                       imageUrl: comment['user_avatar'] as String?,
-                                      name: comment['user_name'] as String,
+                                      name: (comment['user_name'] as String?) ?? 'Unknown',
                                       radius: 16,
                                     ),
                                     const SizedBox(width: 12),
@@ -389,17 +392,18 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
                                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                             children: [
                                               Text(
-                                                comment['user_name'] as String,
+                                                (comment['user_name'] as String?) ?? 'Unknown',
                                                 style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
                                               ),
-                                              Text(
-                                                DateFormat('MMM d, h:mm a').format(date),
-                                                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
-                                              ),
+                                              if (date != null)
+                                                Text(
+                                                  DateFormat('MMM d, h:mm a').format(date),
+                                                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                                                ),
                                             ],
                                           ),
                                           const SizedBox(height: 4),
-                                          Text(comment['content'] as String),
+                                          Text((comment['content'] as String?) ?? ''),
                                         ],
                                       ),
                                     ),
