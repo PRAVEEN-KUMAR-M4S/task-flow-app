@@ -8,6 +8,8 @@ import 'package:task_flow/core/theme/theme_cubit.dart';
 
 // Auth
 import 'package:task_flow/features/auth/data/datasources/auth_local_datasource.dart';
+import 'package:task_flow/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:task_flow/features/auth/domain/repositories/auth_repository.dart';
 import 'package:task_flow/features/auth/domain/services/authorization_service.dart';
 import 'package:task_flow/features/auth/domain/usecases/get_cached_session_usecase.dart';
 import 'package:task_flow/features/auth/domain/usecases/login_usecase.dart';
@@ -24,6 +26,11 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<SecureStorageService>(
     () => SecureStorageService(storage: sl()),
+  );
+
+  // ─── Repositories ─────────────────────────────────────────────────────────
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(datasource: sl(), secureStorage: sl()),
   );
 
   sl.registerLazySingleton<ConnectivityCubit>(() => ConnectivityCubit());
