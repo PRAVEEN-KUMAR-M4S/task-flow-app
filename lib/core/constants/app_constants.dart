@@ -8,15 +8,15 @@ class AppConstants {
   static const String routeLogin = '/login';
   static const String routeRegister = '/register';
   static const String routeHome = '/home';
-  // static const String routeProjects = '/projects';
-  // static const String routeProjectDetail = '/projects/:projectId';
-  // static const String routeProjectForm = '/projects/form';
-  // static const String routeTaskList = '/projects/:projectId/tasks';
-  // static const String routeTaskDetail = '/tasks/:taskId';
-  // static const String routeTaskForm = '/tasks/form';
-  // static const String routeProfile = '/profile';
-  // static const String routeSettings = '/settings';
-  // static const String routeNotifications = '/notifications';
+  static const String routeProjects = '/projects';
+  static const String routeProjectDetail = '/projects/:projectId';
+  static const String routeProjectForm = '/projects/form';
+  static const String routeTaskList = '/projects/:projectId/tasks';
+  static const String routeTaskDetail = '/tasks/:taskId';
+  static const String routeTaskForm = '/tasks/form';
+  static const String routeProfile = '/profile';
+  static const String routeSettings = '/settings';
+  static const String routeNotifications = '/notifications';
 
   // ─── Hive Box Names ───────────────────────────────────────────────────────
   static const String hiveBoxProjects = 'projects_box';

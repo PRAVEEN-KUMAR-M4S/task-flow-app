@@ -7,6 +7,7 @@ import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:task_flow/features/auth/presentation/screens/login_screen.dart';
 import 'package:task_flow/features/auth/presentation/screens/register_screen.dart';
 import 'package:task_flow/features/auth/presentation/screens/splash_screen.dart';
+import 'package:task_flow/features/home/presentation/screens/home_screen.dart';
 
 class AppRouter {
   final SessionCubit sessionCubit;
@@ -55,6 +56,10 @@ class AppRouter {
       GoRoute(
         path: AppConstants.routeRegister,
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: AppConstants.routeHome,
+        builder: (context, state) => const HomeScreen(),
       ),
     ],
   );
