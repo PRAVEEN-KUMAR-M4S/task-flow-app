@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:task_flow/core/di/injection_container.dart';
+import 'package:task_flow/core/mock/error_simulator.dart';
 import 'package:task_flow/core/network/connectivity_cubit.dart';
 import 'package:task_flow/core/services/biometric_service.dart';
 import 'package:task_flow/core/storage/secure_storage_service.dart';
@@ -176,6 +177,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                 ),
                 const Divider(),
+                // ErrorSimulator armed toggle
+                _ErrorSimulatorTile(),
+                const Divider(),
                 ExpansionTile(
                   leading: Icon(Icons.bug_report_outlined, color: theme.colorScheme.primary),
                   title: const Text('Error Trigger Guide'),
@@ -316,6 +320,108 @@ class _AboutRow extends StatelessWidget {
               ),
         ),
       ],
+    );
+  }
+}
+
+/// Dropdown that arms / disarms the [ErrorSimulator] so the next data-layer
+/// operation throws the selected error type.
+class _ErrorSimulatorTile extends StatefulWidget {
+  const _ErrorSimulatorTile();
+
+  @override
+  State<_ErrorSimulatorTile> createState() => _ErrorSimulatorTileState();
+}
+
+class _ErrorSimulatorTileState extends State<_ErrorSimulatorTile> {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final simulator = sl<ErrorSimulator>();
+    final isArmed = simulator.isArmed;
+
+    return ListTile(
+      leading: Icon(
+        isArmed ? Icons.warning_amber_rounded : Icons.check_circle_outline,
+        color: isArmed ? theme.colorScheme.error : theme.colorScheme.primary,
+      ),
+      title: const Text('Force Error on Next Request'),
+      subtitle: Text(
+        isArmed
+            ? 'Armed: ${simulator.mode.label} — next operation will fail'
+            : 'Select an error type to simulate on the next data operation',
+      ),
+      trailing: isArmed
+          ? TextButton(
+              onPressed: () {
+                simulator.disarm();
+                setState(() {});
+              },
+              child: const Text('Disarm'),
+            )
+          : null,
+      onTap: isArmed
+          ? null
+          : () => showDialog<SimulatedError>(
+                context: context,
+                builder: (ctx) => SimpleDialog(
+                  title: const Text('Force Error'),
+                  children: SimulatedError.values.map((e) {
+                    if (e == SimulatedError.none) return const SizedBox();
+                    return SimpleDialogOption(
+                      onPressed: () => Navigator.pop(ctx, e),
+                      child: Row(
+                        children: [
+                          Icon(
+                            e == SimulatedError.notFound
+                                ? Icons.search_off_rounded
+                                : e == SimulatedError.timeout
+                                    ? Icons.timer_off_rounded
+                                    : e == SimulatedError.validation
+                                        ? Icons.rule_folder_outlined
+                                        : Icons.wifi_off_rounded,
+                            size: 20,
+                            color: theme.colorScheme.error,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(e.label, style: theme.textTheme.bodyMedium),
+                                Text(
+                                  e == SimulatedError.notFound
+                                      ? 'Simulated 404 — resource not found'
+                                      : e == SimulatedError.timeout
+                                          ? 'Simulated timeout — request took too long'
+                                          : e == SimulatedError.validation
+                                              ? 'Simulated validation — server rejected data'
+                                              : 'Simulated network — unable to reach server',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ).then((selected) {
+                if (selected != null) {
+                  simulator.arm(selected);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Armed: ${selected.label}. Next operation will fail.'),
+                      backgroundColor: theme.colorScheme.error,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }),
     );
   }
 }

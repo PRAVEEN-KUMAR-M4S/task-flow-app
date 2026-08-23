@@ -2,35 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:task_flow/core/constants/app_constants.dart';
+import 'package:task_flow/core/di/injection_container.dart';
 import 'package:task_flow/features/auth/presentation/cubit/login_cubit.dart';
-import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:task_flow/features/auth/presentation/widgets/auth_text_field.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => LoginCubit(sessionCubit: context.read<SessionCubit>()),
-      child: const _LoginView(),
-    );
-  }
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginView extends StatefulWidget {
-  const _LoginView();
-
-  @override
-  State<_LoginView> createState() => _LoginViewState();
-}
-
-class _LoginViewState extends State<_LoginView> {
+class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _emailFocus = FocusNode();
   final _passwordFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    // Reset so a previous login attempt doesn't persist
+    sl<LoginCubit>().reset();
+  }
 
   @override
   void dispose() {
@@ -44,9 +39,9 @@ class _LoginViewState extends State<_LoginView> {
   void _submit() {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<LoginCubit>().login(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
     }
   }
 

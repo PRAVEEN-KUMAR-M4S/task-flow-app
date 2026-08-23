@@ -44,6 +44,9 @@ class ProjectDetailCubit extends Cubit<ProjectDetailState> {
   })  : _getProjectDetailUseCase = getProjectDetailUseCase,
         super(const ProjectDetailInitial());
 
+  /// Reset state before opening a new detail screen — singleton reuse.
+  void reset() => emit(const ProjectDetailInitial());
+
   Future<void> loadProject(String id) async {
     emit(const ProjectDetailLoading());
     final result = await _getProjectDetailUseCase(id);

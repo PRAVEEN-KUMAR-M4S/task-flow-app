@@ -4,6 +4,7 @@ import 'package:task_flow/core/error/failures.dart';
 import 'package:task_flow/core/usecase/usecase.dart';
 import 'package:task_flow/features/tasks/domain/entities/task_entity.dart';
 import 'package:task_flow/features/tasks/domain/repositories/task_repository.dart';
+import 'package:task_flow/features/users/domain/repositories/user_repository.dart';
 
 class UpdateTaskParams extends Equatable {
   final String taskId;
@@ -12,6 +13,7 @@ class UpdateTaskParams extends Equatable {
   final String priority;
   final String status;
   final String? assigneeId;
+  final String? orgId;
   final DateTime? dueDate;
   final List<String> tags;
 
@@ -22,6 +24,7 @@ class UpdateTaskParams extends Equatable {
     required this.priority,
     required this.status,
     this.assigneeId,
+    this.orgId,
     this.dueDate,
     this.tags = const [],
   });
@@ -34,6 +37,7 @@ class UpdateTaskParams extends Equatable {
         priority,
         status,
         assigneeId,
+        orgId,
         dueDate,
         tags,
       ];
@@ -41,11 +45,31 @@ class UpdateTaskParams extends Equatable {
 
 class UpdateTaskUseCase extends UseCase<TaskEntity, UpdateTaskParams> {
   final TaskRepository repository;
+  final UserRepository userRepository;
 
-  UpdateTaskUseCase(this.repository);
+  UpdateTaskUseCase({required this.repository, required this.userRepository});
 
   @override
-  Future<Either<Failure, TaskEntity>> call(UpdateTaskParams params) {
+  Future<Either<Failure, TaskEntity>> call(UpdateTaskParams params) async {
+    // Validate org membership if assigning a user (same as AssignTaskUseCase)
+    if (params.assigneeId != null && params.orgId != null) {
+      final isMemberResult = await userRepository.validateOrgMembership(
+        params.assigneeId!,
+        params.orgId!,
+      );
+      final validationResult = isMemberResult.flatMap((isMember) {
+        if (!isMember) {
+          return const Left(ValidationFailure(
+            message: 'Cannot assign task: User does not belong to this organization.',
+          ));
+        }
+        return const Right(true);
+      });
+      if (validationResult.isLeft()) {
+        return Left(validationResult.fold((l) => l, (r) => throw Exception()));
+      }
+    }
+
     return repository.updateTask(
       taskId: params.taskId,
       title: params.title,

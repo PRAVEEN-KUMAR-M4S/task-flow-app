@@ -59,16 +59,18 @@ class ProjectListCubit extends Cubit<ProjectListState> {
 
   String? _currentOrgId;
 
+  String? get currentOrgId => _currentOrgId;
+
   ProjectListCubit({
     required GetProjectsUseCase getProjectsUseCase,
     required CreateProjectUseCase createProjectUseCase,
     required UpdateProjectUseCase updateProjectUseCase,
     required DeleteProjectUseCase deleteProjectUseCase,
-  })  : _getProjectsUseCase = getProjectsUseCase,
-        _createProjectUseCase = createProjectUseCase,
-        _updateProjectUseCase = updateProjectUseCase,
-        _deleteProjectUseCase = deleteProjectUseCase,
-        super(const ProjectListInitial());
+  }) : _getProjectsUseCase = getProjectsUseCase,
+       _createProjectUseCase = createProjectUseCase,
+       _updateProjectUseCase = updateProjectUseCase,
+       _deleteProjectUseCase = deleteProjectUseCase,
+       super(const ProjectListInitial());
 
   Future<void> loadProjects({required String orgId}) async {
     _currentOrgId = orgId;
@@ -104,10 +106,9 @@ class ProjectListCubit extends Cubit<ProjectListState> {
         ? (state as ProjectListSuccess).projects
         : <Project>[];
     emit(ProjectMutationLoading(current));
-    final result = await _createProjectUseCase(CreateProjectParams(
-      name: name,
-      description: description,
-    ));
+    final result = await _createProjectUseCase(
+      CreateProjectParams(name: name, description: description),
+    );
     return result.fold(
       (failure) {
         emit(ProjectListSuccess(projects: current));
@@ -130,12 +131,14 @@ class ProjectListCubit extends Cubit<ProjectListState> {
         ? (state as ProjectListSuccess).projects
         : <Project>[];
     emit(ProjectMutationLoading(current));
-    final result = await _updateProjectUseCase(UpdateProjectParams(
-      id: id,
-      name: name,
-      description: description,
-      status: status,
-    ));
+    final result = await _updateProjectUseCase(
+      UpdateProjectParams(
+        id: id,
+        name: name,
+        description: description,
+        status: status,
+      ),
+    );
     return result.fold(
       (failure) {
         emit(ProjectListSuccess(projects: current));
@@ -148,9 +151,7 @@ class ProjectListCubit extends Cubit<ProjectListState> {
     );
   }
 
-  Future<String?> deleteProject({
-    required String id,
-  }) async {
+  Future<String?> deleteProject({required String id}) async {
     final current = state is ProjectListSuccess
         ? (state as ProjectListSuccess).projects
         : <Project>[];

@@ -28,6 +28,7 @@ import 'package:task_flow/features/projects/domain/usecases/get_project_detail_u
 import 'package:task_flow/features/projects/domain/usecases/get_projects_usecase.dart';
 import 'package:task_flow/features/projects/domain/usecases/update_project_usecase.dart';
 import 'package:task_flow/features/projects/presentation/cubit/project_detail_cubit.dart';
+import 'package:task_flow/features/projects/presentation/cubit/project_form_cubit.dart';
 import 'package:task_flow/features/projects/presentation/cubit/project_list_cubit.dart';
 
 // Tasks
@@ -43,6 +44,8 @@ import 'package:task_flow/features/tasks/domain/usecases/update_task_status_usec
 import 'package:task_flow/features/tasks/domain/usecases/update_task_usecase.dart';
 import 'package:task_flow/features/tasks/presentation/bloc/task_bloc.dart';
 import 'package:task_flow/features/tasks/presentation/cubit/task_detail_cubit.dart';
+import 'package:task_flow/features/tasks/presentation/cubit/task_form_cubit.dart';
+import 'package:task_flow/features/auth/presentation/cubit/login_cubit.dart';
 
 // Users
 import 'package:task_flow/features/users/data/datasources/user_local_datasource.dart';
@@ -50,6 +53,7 @@ import 'package:task_flow/features/users/data/repositories/user_repository_impl.
 import 'package:task_flow/features/users/domain/repositories/user_repository.dart';
 import 'package:task_flow/features/users/domain/usecases/get_org_members_usecase.dart';
 import 'package:task_flow/features/users/domain/usecases/validate_org_membership_usecase.dart';
+import 'package:task_flow/features/users/presentation/cubit/org_members_cubit.dart';
 
 // Notifications
 import 'package:task_flow/features/notifications/data/datasources/notification_local_datasource.dart';
@@ -130,7 +134,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetTasksUseCase(sl()));
   sl.registerLazySingleton(() => GetTaskDetailUseCase(sl()));
   sl.registerLazySingleton(() => CreateTaskUseCase(sl()));
-  sl.registerLazySingleton(() => UpdateTaskUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateTaskUseCase(repository: sl(), userRepository: sl()));
   sl.registerLazySingleton(() => DeleteTaskUseCase(sl()));
   sl.registerLazySingleton(
       () => AssignTaskUseCase(taskRepository: sl(), userRepository: sl()));
@@ -145,6 +149,8 @@ Future<void> init() async {
   sl.registerLazySingleton(() => MarkNotificationReadUseCase(sl()));
 
   // ─── Blocs / Cubits ────────────────────────────────────────────────────────
+  sl.registerLazySingleton(() => LoginCubit(sessionCubit: sl()));
+
   sl.registerLazySingleton(() => SessionCubit(
         loginUseCase: sl(),
         logoutUseCase: sl(),
@@ -153,18 +159,18 @@ Future<void> init() async {
         secureStorage: sl(),
       ));
 
-  sl.registerFactory(() => ProjectListCubit(
+  sl.registerLazySingleton(() => ProjectListCubit(
         getProjectsUseCase: sl(),
         createProjectUseCase: sl(),
         updateProjectUseCase: sl(),
         deleteProjectUseCase: sl(),
       ));
 
-  sl.registerFactory(() => ProjectDetailCubit(
+  sl.registerLazySingleton(() => ProjectDetailCubit(
         getProjectDetailUseCase: sl(),
       ));
 
-  sl.registerFactory(() => TaskBloc(
+  sl.registerLazySingleton(() => TaskBloc(
         getTasksUseCase: sl(),
         createTaskUseCase: sl(),
         updateTaskUseCase: sl(),
@@ -173,8 +179,21 @@ Future<void> init() async {
         updateTaskStatusUseCase: sl(),
       ));
 
-  sl.registerFactory(() => TaskDetailCubit(
+  sl.registerLazySingleton(() => TaskDetailCubit(
         getTaskDetailUseCase: sl(),
+      ));
+
+  sl.registerLazySingleton(() => OrgMembersCubit(getOrgMembersUseCase: sl()));
+
+  // Form Cubits (lazy singletons — provided at app root, reset() before each use)
+  sl.registerLazySingleton(() => ProjectFormCubit(
+        createProjectUseCase: sl(),
+        updateProjectUseCase: sl(),
+      ));
+
+  sl.registerLazySingleton(() => TaskFormCubit(
+        createTaskUseCase: sl(),
+        updateTaskUseCase: sl(),
       ));
 
   sl.registerLazySingleton(() => NotificationCubit(

@@ -4,41 +4,49 @@ import 'package:go_router/go_router.dart';
 import 'package:task_flow/core/di/injection_container.dart';
 import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:task_flow/features/projects/domain/entities/project.dart';
-import 'package:task_flow/features/projects/domain/usecases/delete_project_usecase.dart';
 import 'package:task_flow/features/projects/presentation/cubit/project_detail_cubit.dart';
+import 'package:task_flow/features/projects/presentation/cubit/project_list_cubit.dart';
 import 'package:task_flow/features/projects/presentation/widgets/task_summary_row.dart';
 import 'package:task_flow/features/tasks/presentation/bloc/task_bloc.dart';
 import 'package:task_flow/features/tasks/presentation/widgets/task_card.dart';
+import 'package:task_flow/features/tasks/presentation/widgets/task_filter_bar.dart';
+import 'package:task_flow/features/users/domain/entities/org_member.dart';
+import 'package:task_flow/features/users/domain/usecases/get_org_members_usecase.dart';
 import 'package:task_flow/shared/widgets/confirm_dialog.dart';
 import 'package:task_flow/shared/widgets/empty_view.dart';
 import 'package:task_flow/shared/widgets/error_view.dart';
 import 'package:task_flow/shared/widgets/loading_view.dart';
 
-class ProjectDetailScreen extends StatelessWidget {
+class ProjectDetailScreen extends StatefulWidget {
   final String projectId;
 
   const ProjectDetailScreen({super.key, required this.projectId});
 
   @override
-  Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (_) => sl<ProjectDetailCubit>()..loadProject(projectId),
-        ),
-        BlocProvider(
-          create: (_) => sl<TaskBloc>()..add(TasksLoadRequested(projectId)),
-        ),
-      ],
-      child: _ProjectDetailView(projectId: projectId),
-    );
-  }
+  State<ProjectDetailScreen> createState() => _ProjectDetailScreenState();
 }
 
-class _ProjectDetailView extends StatelessWidget {
-  final String projectId;
+class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
+  List<OrgMember> _members = [];
 
-  const _ProjectDetailView({required this.projectId});
+  @override
+  void initState() {
+    super.initState();
+    // Reset cubits and load data — all are root-level singletons
+    sl<ProjectDetailCubit>().reset();
+    sl<ProjectDetailCubit>().loadProject(widget.projectId);
+    sl<TaskBloc>().add(TasksLoadRequested(widget.projectId));
+    _loadMembers();
+  }
+
+  void _loadMembers() async {
+    final orgId = context.read<SessionCubit>().currentUser?.orgId;
+    if (orgId == null) return;
+    final result = await sl<GetOrgMembersUseCase>()(orgId);
+    result.fold((_) {}, (members) {
+      if (mounted) setState(() => _members = members);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +77,7 @@ class _ProjectDetailView extends StatelessWidget {
                           extra: {'project': state.project, 'isAdmin': isAdmin},
                         ).then((_) {
                           if (context.mounted) {
-                            context.read<ProjectDetailCubit>().refresh(projectId);
+                            context.read<ProjectDetailCubit>().refresh(widget.projectId);
                           }
                         });
                       } else if (value == 'delete') {
@@ -113,7 +121,7 @@ class _ProjectDetailView extends StatelessWidget {
           if (projectState is ProjectDetailError) {
             return ErrorView(
               message: projectState.failure.message,
-              onRetry: () => context.read<ProjectDetailCubit>().loadProject(projectId),
+              onRetry: () => context.read<ProjectDetailCubit>().loadProject(widget.projectId),
             );
           }
           if (projectState is ProjectDetailSuccess) {
@@ -121,8 +129,8 @@ class _ProjectDetailView extends StatelessWidget {
 
             return RefreshIndicator(
               onRefresh: () async {
-                context.read<ProjectDetailCubit>().refresh(projectId);
-                context.read<TaskBloc>().add(TasksLoadRequested(projectId));
+                context.read<ProjectDetailCubit>().refresh(widget.projectId);
+                context.read<TaskBloc>().add(TasksLoadRequested(widget.projectId));
               },
               child: CustomScrollView(
                 slivers: [
@@ -159,11 +167,11 @@ class _ProjectDetailView extends StatelessWidget {
                                 onPressed: () {
                                   context.push(
                                     '/tasks/form',
-                                    extra: {'projectId': projectId},
+                                    extra: {'projectId': widget.projectId},
                                   ).then((_) {
                                     if (context.mounted) {
-                                      context.read<TaskBloc>().add(TasksLoadRequested(projectId));
-                                      context.read<ProjectDetailCubit>().refresh(projectId);
+                                      context.read<TaskBloc>().add(TasksLoadRequested(widget.projectId));
+                                      context.read<ProjectDetailCubit>().refresh(widget.projectId);
                                     }
                                   });
                                 },
@@ -181,6 +189,25 @@ class _ProjectDetailView extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // ── Filter Bar ──────────────────────────────────────────────
+                  SliverToBoxAdapter(
+                    child: TaskFilterBar(
+                      members: _members,
+                      onFilterChanged: ({
+                        String? status,
+                        String? priority,
+                        String? assigneeId,
+                        DateTime? dueFrom,
+                        DateTime? dueTo,
+                      }) {
+                        context.read<TaskBloc>().add(TaskFilterChanged(
+                              status: status,
+                              priority: priority,
+                              assigneeId: assigneeId,
+                            ));
+                      },
+                    ),
+                  ),
                   BlocBuilder<TaskBloc, TaskState>(
                     builder: (context, taskState) {
                       if (taskState is TaskLoading) {
@@ -192,7 +219,7 @@ class _ProjectDetailView extends StatelessWidget {
                         return SliverFillRemaining(
                           child: ErrorView(
                             message: taskState.failure.message,
-                            onRetry: () => context.read<TaskBloc>().add(TasksLoadRequested(projectId)),
+                            onRetry: () => context.read<TaskBloc>().add(TasksLoadRequested(widget.projectId)),
                           ),
                         );
                       }
@@ -216,8 +243,8 @@ class _ProjectDetailView extends StatelessWidget {
                                 onTap: () {
                                   context.push('/tasks/${task.id}').then((_) {
                                     if (context.mounted) {
-                                      context.read<TaskBloc>().add(TasksLoadRequested(projectId));
-                                      context.read<ProjectDetailCubit>().refresh(projectId);
+                                      context.read<TaskBloc>().add(TasksLoadRequested(widget.projectId));
+                                      context.read<ProjectDetailCubit>().refresh(widget.projectId);
                                     }
                                   });
                                 },
@@ -251,23 +278,20 @@ class _ProjectDetailView extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      final result = await sl<DeleteProjectUseCase>()(project.id);
+      final error = await sl<ProjectListCubit>().deleteProject(id: project.id);
 
       if (!context.mounted) return;
 
-      result.fold(
-        (failure) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(failure.message),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-        },
-        (_) {
-          context.pop();
-        },
-      );
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      } else {
+        context.pop();
+      }
     }
   }
 }

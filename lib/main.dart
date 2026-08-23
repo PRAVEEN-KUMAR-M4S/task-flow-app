@@ -7,8 +7,16 @@ import 'package:task_flow/core/router/app_router.dart';
 import 'package:task_flow/core/storage/hive_service.dart';
 import 'package:task_flow/core/theme/app_theme.dart';
 import 'package:task_flow/core/theme/theme_cubit.dart';
+import 'package:task_flow/features/auth/presentation/cubit/login_cubit.dart';
 import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:task_flow/features/notifications/presentation/cubit/notification_cubit.dart';
+import 'package:task_flow/features/projects/presentation/cubit/project_detail_cubit.dart';
+import 'package:task_flow/features/projects/presentation/cubit/project_form_cubit.dart';
+import 'package:task_flow/features/projects/presentation/cubit/project_list_cubit.dart';
+import 'package:task_flow/features/tasks/presentation/bloc/task_bloc.dart';
+import 'package:task_flow/features/tasks/presentation/cubit/task_detail_cubit.dart';
+import 'package:task_flow/features/tasks/presentation/cubit/task_form_cubit.dart';
+import 'package:task_flow/features/users/presentation/cubit/org_members_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +49,30 @@ class TaskFlowApp extends StatelessWidget {
         ),
         BlocProvider<NotificationCubit>(
           create: (_) => di.sl<NotificationCubit>(),
+        ),
+        BlocProvider<ProjectListCubit>(
+          create: (_) => di.sl<ProjectListCubit>(),
+        ),
+        BlocProvider<TaskBloc>(
+          create: (_) => di.sl<TaskBloc>(),
+        ),
+        BlocProvider<ProjectFormCubit>(
+          create: (_) => di.sl<ProjectFormCubit>(),
+        ),
+        BlocProvider<TaskFormCubit>(
+          create: (_) => di.sl<TaskFormCubit>(),
+        ),
+        BlocProvider<OrgMembersCubit>(
+          create: (_) => di.sl<OrgMembersCubit>(),
+        ),
+        BlocProvider<LoginCubit>(
+          create: (_) => di.sl<LoginCubit>(),
+        ),
+        BlocProvider<ProjectDetailCubit>(
+          create: (_) => di.sl<ProjectDetailCubit>(),
+        ),
+        BlocProvider<TaskDetailCubit>(
+          create: (_) => di.sl<TaskDetailCubit>(),
         ),
       ],
       child: const TaskFlowAppMaterial(),

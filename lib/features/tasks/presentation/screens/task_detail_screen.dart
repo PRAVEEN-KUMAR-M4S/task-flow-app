@@ -19,42 +19,24 @@ import 'package:task_flow/shared/widgets/confirm_dialog.dart';
 import 'package:task_flow/shared/widgets/error_view.dart';
 import 'package:task_flow/shared/widgets/loading_view.dart';
 
-class TaskDetailScreen extends StatelessWidget {
+class TaskDetailScreen extends StatefulWidget {
   final String taskId;
 
   const TaskDetailScreen({super.key, required this.taskId});
 
   @override
-  Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (_) => sl<TaskDetailCubit>()..loadTask(taskId),
-        ),
-        BlocProvider(
-          create: (_) => sl<TaskBloc>(),
-        ),
-      ],
-      child: _TaskDetailView(taskId: taskId),
-    );
-  }
+  State<TaskDetailScreen> createState() => _TaskDetailScreenState();
 }
 
-class _TaskDetailView extends StatefulWidget {
-  final String taskId;
-
-  const _TaskDetailView({required this.taskId});
-
-  @override
-  State<_TaskDetailView> createState() => _TaskDetailViewState();
-}
-
-class _TaskDetailViewState extends State<_TaskDetailView> {
+class _TaskDetailScreenState extends State<TaskDetailScreen> {
   late Future<List<Map<String, dynamic>>> _commentsFuture;
 
   @override
   void initState() {
     super.initState();
+    // Reset cubit and load data — root-level singletons
+    sl<TaskDetailCubit>().reset();
+    sl<TaskDetailCubit>().loadTask(widget.taskId);
     _commentsFuture = _loadComments();
   }
 
@@ -83,7 +65,6 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final user = context.read<SessionCubit>().currentUser;
-    final isAdmin = user?.isAdmin ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -148,7 +129,6 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
                 backgroundColor: theme.colorScheme.error,
               ),
             );
-            // Refresh task detail to undo UI changes if they failed
             context.read<TaskDetailCubit>().refresh(widget.taskId);
           }
         },
@@ -180,13 +160,11 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Title
                         Text(
                           task.title,
                           style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 12),
-                        // Status & Priority
                         Row(
                           children: [
                             StatusChip(status: task.status),
@@ -195,10 +173,8 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        // Quick actions: Change status & Assignee
                         Row(
                           children: [
-                            // Change Status Dropdown
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,7 +202,6 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
                                               taskId: task.id,
                                               status: newStatus,
                                             ));
-                                        // Optimistic update detail state
                                         context.read<TaskDetailCubit>().updateTaskLocally(
                                               task.copyWith(status: newStatus),
                                             );
@@ -237,7 +212,6 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
                               ),
                             ),
                             const SizedBox(width: 16),
-                            // Assignee
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,7 +257,6 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        // Description
                         Text(
                           'DESCRIPTION',
                           style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
@@ -302,7 +275,6 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        // Due date and tags
                         Row(
                           children: [
                             if (task.dueDate != null)
@@ -342,7 +314,6 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
                         ],
                         const Divider(),
                         const SizedBox(height: 16),
-                        // Comments section
                         Text(
                           'COMMENTS',
                           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -449,7 +420,6 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
             orgId: orgId,
           ));
 
-      // Optimistically update the details view
       final updatedTask = task.copyWith(
         assigneeId: selectedMember?.userId,
         assigneeName: selectedMember?.name,
@@ -474,4 +444,3 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
     }
   }
 }
-

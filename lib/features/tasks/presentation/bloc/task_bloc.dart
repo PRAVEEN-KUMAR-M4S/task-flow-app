@@ -307,4 +307,31 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       add(TasksLoadRequested(_currentProjectId!));
     }
   }
+
+  // ─── Public mutation methods (called by form screens) ────────────────
+
+  /// Creates a task and returns an error message, or null on success.
+  Future<String?> createTask(CreateTaskParams params) async {
+    final result = await _createTaskUseCase(params);
+    return result.fold(
+      (failure) => failure.message,
+      (newTask) {
+        _allTasks.insert(0, newTask);
+        return null;
+      },
+    );
+  }
+
+  /// Updates a task and returns an error message, or null on success.
+  Future<String?> updateTask(UpdateTaskParams params) async {
+    final result = await _updateTaskUseCase(params);
+    return result.fold(
+      (failure) => failure.message,
+      (updatedTask) {
+        final index = _allTasks.indexWhere((t) => t.id == updatedTask.id);
+        if (index != -1) _allTasks[index] = updatedTask;
+        return null;
+      },
+    );
+  }
 }

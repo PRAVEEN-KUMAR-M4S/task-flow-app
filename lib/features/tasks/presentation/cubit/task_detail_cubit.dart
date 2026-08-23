@@ -40,6 +40,9 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
   })  : _getTaskDetailUseCase = getTaskDetailUseCase,
         super(const TaskDetailInitial());
 
+  /// Reset state before opening a new detail screen — singleton reuse.
+  void reset() => emit(const TaskDetailInitial());
+
   Future<void> loadTask(String taskId) async {
     emit(const TaskDetailLoading());
     final result = await _getTaskDetailUseCase(taskId);

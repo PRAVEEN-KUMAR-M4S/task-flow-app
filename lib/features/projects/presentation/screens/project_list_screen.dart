@@ -13,16 +13,25 @@ import 'package:task_flow/shared/widgets/error_view.dart';
 import 'package:task_flow/shared/widgets/loading_view.dart';
 import 'package:task_flow/shared/widgets/stale_data_banner.dart';
 
-class ProjectListScreen extends StatelessWidget {
+class ProjectListScreen extends StatefulWidget {
   const ProjectListScreen({super.key});
 
   @override
+  State<ProjectListScreen> createState() => _ProjectListScreenState();
+}
+
+class _ProjectListScreenState extends State<ProjectListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // ProjectListCubit is provided at app root — fire initial load here
+    final orgId = context.read<SessionCubit>().currentUser?.orgId ?? '';
+    sl<ProjectListCubit>().loadProjects(orgId: orgId);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<ProjectListCubit>()
-        ..loadProjects(orgId: context.read<SessionCubit>().currentUser?.orgId ?? ''),
-      child: const _ProjectListView(),
-    );
+    return const _ProjectListView();
   }
 }
 
