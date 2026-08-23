@@ -95,6 +95,17 @@ void main() {
         ),
       ),
     );
+    when(() => mockSession.currentUser).thenReturn(
+      const User(
+        id: 'user_001',
+        name: 'Alice',
+        email: 'alice@alphacorp.com',
+        avatarUrl: null,
+        orgId: 'org_a1b2c3',
+        orgName: 'AlphaCorp',
+        role: 'org_admin',
+      ),
+    );
     when(() => mockSession.stream).thenAnswer((_) => const Stream.empty());
     when(() => mockTaskBloc.state).thenReturn(const TaskInitial());
     when(() => mockTaskBloc.stream).thenAnswer((_) => const Stream.empty());
@@ -109,6 +120,8 @@ void main() {
     when(() => mockOrgMembers.state).thenReturn(const OrgMembersInitial());
     when(() => mockOrgMembers.stream).thenAnswer((_) => const Stream.empty());
     when(() => mockNotification.unreadCount).thenReturn(0);
+    when(() => mockNotification.loadNotifications(any())).thenAnswer((_) async {});
+    when(() => mockNotification.markAsRead(any())).thenAnswer((_) async {});
   });
 
   Widget buildApp() {
@@ -163,7 +176,7 @@ void main() {
       await tester.tap(find.text('Profile'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.text('Settings'), findsOneWidget);
     });
   });
 

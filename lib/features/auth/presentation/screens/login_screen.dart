@@ -46,9 +46,9 @@ class _LoginScreenState extends State<LoginScreen> {
   void _submit() {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<LoginCubit>().login(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          );
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
     }
   }
 
@@ -127,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _emailController,
                       focusNode: _emailFocus,
                       label: 'Email',
-                      hint: 'alice@alphacorp.com',
+                      hint: 'Enter your email',
                       keyboardType: TextInputType.emailAddress,
                       prefixIcon: Icons.email_outlined,
                       textInputAction: TextInputAction.next,
@@ -151,6 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _passwordController,
                       focusNode: _passwordFocus,
                       label: 'Password',
+                      hint: 'Enter your Password',
                       isPassword: true,
                       prefixIcon: Icons.lock_outline,
                       textInputAction: TextInputAction.done,
