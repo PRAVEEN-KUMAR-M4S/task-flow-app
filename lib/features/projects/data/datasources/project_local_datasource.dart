@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:task_flow/core/error/exceptions.dart';
 import 'package:task_flow/core/mock/error_simulator.dart';
 import 'package:task_flow/core/mock/mock_database.dart';
@@ -46,21 +47,67 @@ class ProjectLocalDatasourceImpl
   @override
   final ErrorSimulator errorSimulator;
 
+  bool _hiveMerged = false;
+
   ProjectLocalDatasourceImpl({
     required MockDatabase database,
     required this.errorSimulator,
   }) : _db = database;
+
+  // ─── Hive → MockDatabase merge ──────────────────────────────────────────
+
+  /// After MockDatabase seeds from the JSON asset, scan Hive for any
+  /// locally-created projects that the JSON doesn't contain and merge them in.
+  /// This runs exactly once per app session.
+  Future<void> _mergeHiveIntoMock() async {
+    if (_hiveMerged) return;
+    _hiveMerged = true;
+
+    try {
+      final box = HiveService.projectsBox;
+      var added = 0;
+
+      for (final key in box.keys) {
+        if (key is! String || !key.startsWith('projects_')) continue;
+        final rows = HiveService.readList(box, key);
+        if (rows == null) continue;
+
+        for (final row in rows) {
+          final id = row['id'] as String?;
+          if (id == null) continue;
+          if (_db.projects.containsKey(id)) continue; // already in MockDatabase
+
+          // This project was created locally in a previous session.
+          _db.projects[id] = row;
+          added++;
+        }
+      }
+
+      if (added > 0) {
+        debugPrint('[ProjectDS] 🔄 Merged $added Hive-cached project(s) into MockDatabase');
+        debugPrint('[ProjectDS]   └─ MockDatabase projects now has ${_db.projects.length} total');
+      }
+    } catch (_) {
+      // Hive cache is best-effort; never fail the read.
+    }
+  }
 
   // ─── Reads ──────────────────────────────────────────────────────────────
 
   @override
   Future<List<Project>> getProjects({required String orgId}) async {
     await _db.ensureLoaded();
+    await _mergeHiveIntoMock();
     await simulatedDelay();
 
     final rows = _db.projects.values
         .where((row) => row['org_id'] == orgId)
         .toList(growable: false);
+
+    debugPrint('[ProjectDS] 📖 getProjects(orgId=$orgId) → ${rows.length} rows from MockDatabase');
+    for (final row in rows) {
+      debugPrint('[ProjectDS]   └─ ${row["id"]}: ${row["name"]}');
+    }
 
     final projects = rows.map(_buildProject).toList()
       ..sort((a, b) => b.lastActivityAt.compareTo(a.lastActivityAt));
@@ -75,6 +122,7 @@ class ProjectLocalDatasourceImpl
   @override
   Future<Project> getProjectById(String id) async {
     await _db.ensureLoaded();
+    await _mergeHiveIntoMock();
     await simulatedDelay();
 
     final raw = _db.projects[id];
@@ -117,6 +165,8 @@ class ProjectLocalDatasourceImpl
     };
 
     _db.projects[id] = raw;
+    debugPrint('[ProjectDS] ✅ Created project: $id (${raw["name"]}) in org=$orgId');
+    debugPrint('[ProjectDS]   └─ MockDatabase projects now has ${_db.projects.length} total');
     await _cacheOrg(orgId);
     return _buildProject(raw);
   }
@@ -152,6 +202,7 @@ class ProjectLocalDatasourceImpl
     };
 
     _db.projects[id] = updated;
+    debugPrint('[ProjectDS] ✏️ Updated project: $id (${updated["name"]})');
     await _cacheOrg(updated['org_id'] as String);
     return _buildProject(updated);
   }
@@ -168,6 +219,7 @@ class ProjectLocalDatasourceImpl
     }
 
     _db.projects.remove(id);
+    debugPrint('[ProjectDS] 🗑️ Deleted project: $id');
     // Cascade: a task can't outlive its project, and orphans would corrupt the
     // per-project counts on the next read.
     _db.tasks.removeWhere((_, task) => task['project_id'] == id);
@@ -184,8 +236,6 @@ class ProjectLocalDatasourceImpl
         _cacheKey(orgId),
       );
       if (cached == null || cached.isEmpty) return null;
-      // Cached rows carry the `task_count` snapshot; the model falls back to it
-      // when no live task breakdown is available.
       return cached.map((raw) => ProjectModel.fromJson(raw).toEntity()).toList()
         ..sort((a, b) => b.lastActivityAt.compareTo(a.lastActivityAt));
     } catch (_) {
@@ -221,7 +271,6 @@ class ProjectLocalDatasourceImpl
     List<Map<String, dynamic>> rows,
   ) async {
     try {
-      // Persist the live task count so the offline view isn't showing 0/0.
       final snapshot = rows.map((row) {
         final counts = _countsFor(row['id'] as String);
         return <String, dynamic>{...row, 'task_count': counts.total};
@@ -251,8 +300,6 @@ class ProjectLocalDatasourceImpl
     );
   }
 
-  /// Derives the status breakdown from the shared task table, so creating or
-  /// moving a task is immediately reflected on the project card.
   _TaskCounts _countsFor(String projectId) {
     var total = 0, todo = 0, inProgress = 0, review = 0, done = 0;
     for (final task in _db.tasks.values) {
@@ -295,7 +342,6 @@ class _TaskCounts {
   });
 }
 
-/// The project lifecycle values present in the mock data.
 abstract final class AppProjectStatus {
   static const active = 'active';
   static const completed = 'completed';

@@ -69,13 +69,7 @@ class AppRouter {
         path: AppConstants.routeHome,
         builder: (context, state) => const HomeScreen(),
       ),
-      GoRoute(
-        path: AppConstants.routeProjectDetail,
-        builder: (context, state) {
-          final projectId = state.pathParameters['projectId']!;
-          return ProjectDetailScreen(projectId: projectId);
-        },
-      ),
+      // Static routes MUST come before parameterized routes
       GoRoute(
         path: AppConstants.routeProjectForm,
         builder: (context, state) {
@@ -89,12 +83,13 @@ class AppRouter {
         },
       ),
       GoRoute(
-        path: AppConstants.routeTaskDetail,
+        path: AppConstants.routeProjectDetail,
         builder: (context, state) {
-          final taskId = state.pathParameters['taskId']!;
-          return TaskDetailScreen(taskId: taskId);
+          final projectId = state.pathParameters['projectId']!;
+          return ProjectDetailScreen(projectId: projectId);
         },
       ),
+      // Static routes MUST come before parameterized routes
       GoRoute(
         path: AppConstants.routeTaskForm,
         builder: (context, state) {
@@ -105,6 +100,13 @@ class AppRouter {
             projectId: projectId,
             task: task,
           );
+        },
+      ),
+      GoRoute(
+        path: AppConstants.routeTaskDetail,
+        builder: (context, state) {
+          final taskId = state.pathParameters['taskId']!;
+          return TaskDetailScreen(taskId: taskId);
         },
       ),
       GoRoute(

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:task_flow/core/constants/app_constants.dart';
 import 'package:task_flow/core/error/exceptions.dart';
 import 'package:task_flow/core/mock/error_simulator.dart';
@@ -78,16 +79,56 @@ class TaskLocalDatasourceImpl
   @override
   final ErrorSimulator errorSimulator;
 
+  bool _hiveMerged = false;
+
   TaskLocalDatasourceImpl({
     required MockDatabase database,
     required this.errorSimulator,
   }) : _db = database;
+
+  // ─── Hive → MockDatabase merge ──────────────────────────────────────────
+
+  Future<void> _mergeHiveIntoMock() async {
+    if (_hiveMerged) return;
+    _hiveMerged = true;
+
+    try {
+      final box = HiveService.tasksBox;
+      var added = 0;
+
+      for (final key in box.keys) {
+        if (key is! String || !key.startsWith('tasks_')) continue;
+        final rows = HiveService.readList(box, key);
+        if (rows == null) continue;
+
+        for (final row in rows) {
+          final id = row['id'] as String?;
+          if (id == null) continue;
+          if (_db.tasks.containsKey(id)) continue;
+
+          // Strip denormalized fields before inserting into MockDatabase.
+          final clean = Map<String, dynamic>.from(row)
+            ..remove('_assignee_name')
+            ..remove('_assignee_avatar_url');
+          _db.tasks[id] = clean;
+          added++;
+        }
+      }
+
+      if (added > 0) {
+        debugPrint('[TaskDS] 🔄 Merged $added Hive-cached task(s) into MockDatabase');
+      }
+    } catch (_) {
+      // Hive cache is best-effort.
+    }
+  }
 
   // ─── Reads ──────────────────────────────────────────────────────────────
 
   @override
   Future<List<TaskEntity>> getTasksByProject(String projectId) async {
     await _db.ensureLoaded();
+    await _mergeHiveIntoMock();
     await simulatedDelay();
     checkForSimulatedError(projectId);
 
@@ -106,6 +147,7 @@ class TaskLocalDatasourceImpl
   @override
   Future<TaskEntity> getTaskById(String taskId) async {
     await _db.ensureLoaded();
+    await _mergeHiveIntoMock();
     await simulatedDelay();
     return _buildTask(_require(taskId));
   }

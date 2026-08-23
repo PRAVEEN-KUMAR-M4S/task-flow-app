@@ -50,4 +50,9 @@ class TaskDetailCubit extends Cubit<TaskDetailState> {
   }
 
   Future<void> refresh(String taskId) => loadTask(taskId);
+
+  /// Optimistically replace the current task without re-fetching.
+  void updateTaskLocally(TaskEntity task) {
+    emit(TaskDetailSuccess(task));
+  }
 }

@@ -1,10 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:task_flow/core/di/injection_container.dart';
-import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:task_flow/features/projects/domain/entities/project.dart';
-import 'package:task_flow/features/projects/presentation/cubit/project_list_cubit.dart';
+import 'package:task_flow/features/projects/domain/usecases/create_project_usecase.dart';
+import 'package:task_flow/features/projects/domain/usecases/update_project_usecase.dart';
 
 class ProjectFormScreen extends StatefulWidget {
   final Project? project;
@@ -47,42 +47,38 @@ class _ProjectFormScreenState extends State<ProjectFormScreen> {
 
     setState(() => _isLoading = true);
 
-    final sessionCubit = context.read<SessionCubit>();
-    final user = sessionCubit.currentUser;
-    if (user == null) return;
-
-    final listCubit = sl<ProjectListCubit>();
-    String? error;
-
-    if (widget.project == null) {
-      error = await listCubit.createProject(
-        orgId: user.orgId,
-        name: _nameController.text.trim(),
-        description: _descController.text.trim(),
-      );
-    } else {
-      error = await listCubit.updateProject(
-        id: widget.project!.id,
-        name: _nameController.text.trim(),
-        description: _descController.text.trim(),
-        status: _status,
-      );
-    }
-
-    setState(() => _isLoading = false);
+    debugPrint('[ProjectForm] 📝 Submitting ${widget.project == null ? 'CREATE' : 'UPDATE'}...');
+    final result = widget.project == null
+        ? await sl<CreateProjectUseCase>()(CreateProjectParams(
+            name: _nameController.text.trim(),
+            description: _descController.text.trim(),
+          ))
+        : await sl<UpdateProjectUseCase>()(UpdateProjectParams(
+            id: widget.project!.id,
+            name: _nameController.text.trim(),
+            description: _descController.text.trim(),
+            status: _status,
+          ));
 
     if (!mounted) return;
 
-    if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-    } else {
-      context.pop();
-    }
+    result.fold(
+      (failure) {
+        debugPrint('[ProjectForm] ❌ Failed: ${failure.message}');
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(failure.message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      },
+      (project) {
+        debugPrint('[ProjectForm] ✅ Success: ${project.id} — popping');
+        // Success — pop. The list screen refreshes on return.
+        context.pop();
+      },
+    );
   }
 
   @override
@@ -139,7 +135,7 @@ class _ProjectFormScreenState extends State<ProjectFormScreen> {
               if (isEditing) ...[
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _status,
+                  initialValue: _status,
                   decoration: const InputDecoration(
                     labelText: 'Status',
                   ),

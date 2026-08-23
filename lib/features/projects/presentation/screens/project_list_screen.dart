@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -133,6 +134,7 @@ class _ProjectListView extends StatelessWidget {
       '/projects/form',
       extra: {'project': project, 'isAdmin': isAdmin},
     );
+    debugPrint('[ProjectList] 🔄 Returned from form — refreshing...');
     if (context.mounted) {
       context.read<ProjectListCubit>().refresh();
     }

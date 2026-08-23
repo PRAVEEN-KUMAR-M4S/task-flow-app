@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:task_flow/core/di/injection_container.dart';
 import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:task_flow/features/projects/domain/entities/project.dart';
+import 'package:task_flow/features/projects/domain/usecases/delete_project_usecase.dart';
 import 'package:task_flow/features/projects/presentation/cubit/project_detail_cubit.dart';
-import 'package:task_flow/features/projects/presentation/cubit/project_list_cubit.dart';
 import 'package:task_flow/features/projects/presentation/widgets/task_summary_row.dart';
 import 'package:task_flow/features/tasks/presentation/bloc/task_bloc.dart';
 import 'package:task_flow/features/tasks/presentation/widgets/task_card.dart';
@@ -251,22 +251,23 @@ class _ProjectDetailView extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      // We will perform deletion using ProjectListCubit through sl
-      final listCubit = sl<ProjectListCubit>();
-      final error = await listCubit.deleteProject(
-        id: project.id,
-      );
+      final result = await sl<DeleteProjectUseCase>()(project.id);
 
-      if (error != null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      } else if (context.mounted) {
-        context.pop();
-      }
+      if (!context.mounted) return;
+
+      result.fold(
+        (failure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(failure.message),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        },
+        (_) {
+          context.pop();
+        },
+      );
     }
   }
 }

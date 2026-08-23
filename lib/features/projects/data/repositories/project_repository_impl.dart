@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 import 'package:task_flow/core/error/failure_mapper.dart';
 import 'package:task_flow/core/error/failures.dart';
 import 'package:task_flow/core/network/connectivity_cubit.dart';
@@ -25,7 +26,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
   Future<Either<Failure, Cached<List<Project>>>> getProjects({
     required String orgId,
   }) async {
+    debugPrint('[ProjectRepo] 📖 getProjects(orgId=$orgId) isOffline=$_isOffline');
     if (_isOffline) {
+      debugPrint('[ProjectRepo] 📴 Reading from Hive cache (offline)');
       final cached = _datasource.getCachedProjects(orgId);
       if (cached != null) return Right(Cached.stale(cached));
       return const Left(
@@ -35,8 +38,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
       );
     }
     try {
+      debugPrint('[ProjectRepo] 📡 Reading from MockDatabase (online)');
       return Right(Cached.fresh(await _datasource.getProjects(orgId: orgId)));
     } catch (error) {
+      debugPrint('[ProjectRepo] ❌ Live read failed: $error');
       // A live read that fails still beats an empty screen if we have a copy.
       final cached = _datasource.getCachedProjects(orgId);
       if (cached != null) return Right(Cached.stale(cached));
@@ -71,17 +76,19 @@ class ProjectRepositoryImpl implements ProjectRepository {
     required String description,
     required String createdBy,
   }) async {
+    debugPrint('[ProjectRepo] ✏️ createProject(name=$name, orgId=$orgId) isOffline=$_isOffline');
     if (_isOffline) return Left(_offlineWrite('create a project'));
     try {
-      return Right(
-        await _datasource.createProject(
-          orgId: orgId,
-          name: name,
-          description: description,
-          createdBy: createdBy,
-        ),
+      final result = await _datasource.createProject(
+        orgId: orgId,
+        name: name,
+        description: description,
+        createdBy: createdBy,
       );
+      debugPrint('[ProjectRepo] ✅ createProject success: ${result.id}');
+      return Right(result);
     } catch (error) {
+      debugPrint('[ProjectRepo] ❌ createProject failed: $error');
       return Left(mapExceptionToFailure(error));
     }
   }

@@ -3,11 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:task_flow/core/di/injection_container.dart';
+import 'package:task_flow/core/error/failures.dart';
 import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:task_flow/features/tasks/domain/entities/task_entity.dart';
 import 'package:task_flow/features/tasks/domain/usecases/create_task_usecase.dart';
 import 'package:task_flow/features/tasks/domain/usecases/update_task_usecase.dart';
-import 'package:task_flow/features/tasks/presentation/bloc/task_bloc.dart';
 import 'package:task_flow/features/users/domain/entities/org_member.dart';
 import 'package:task_flow/features/users/domain/usecases/get_org_members_usecase.dart';
 
@@ -86,7 +86,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
     }
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     setState(() => _isLoading = true);
@@ -94,16 +94,17 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
     final user = context.read<SessionCubit>().currentUser;
     if (user == null) return;
 
-    final taskBloc = sl<TaskBloc>();
-
     final tags = _tagsController.text
         .split(',')
         .map((t) => t.trim())
         .where((t) => t.isNotEmpty)
         .toList();
 
+    Failure? failure;
+
     if (widget.task == null) {
-      taskBloc.add(TaskCreated(CreateTaskParams(
+      // Create
+      final result = await sl<CreateTaskUseCase>()(CreateTaskParams(
         projectId: widget.projectId,
         title: _titleController.text.trim(),
         description: _descController.text.trim(),
@@ -113,9 +114,11 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
         createdBy: user.id,
         dueDate: _dueDate,
         tags: tags,
-      )));
+      ));
+      result.fold((f) => failure = f, (_) => null);
     } else {
-      taskBloc.add(TaskUpdated(UpdateTaskParams(
+      // Update
+      final result = await sl<UpdateTaskUseCase>()(UpdateTaskParams(
         taskId: widget.task!.id,
         title: _titleController.text.trim(),
         description: _descController.text.trim(),
@@ -124,11 +127,24 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
         assigneeId: _assigneeId,
         dueDate: _dueDate,
         tags: tags,
-      )));
+      ));
+      result.fold((f) => failure = f, (_) => null);
     }
 
-    setState(() => _isLoading = false);
-    context.pop();
+    if (!mounted) return;
+
+    if (failure != null) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(failure!.message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    } else {
+      // Success — pop. The caller refreshes on return.
+      context.pop();
+    }
   }
 
   @override
@@ -184,19 +200,19 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _priority,
+                initialValue: _priority,
                 decoration: const InputDecoration(labelText: 'Priority'),
                 items: const [
                   DropdownMenuItem(value: 'low', child: Text('Low')),
                   DropdownMenuItem(value: 'medium', child: Text('Medium')),
                   DropdownMenuItem(value: 'high', child: Text('High')),
-                  DropdownMenuItem(value: 'critical', child: Text('Critical')),
+                  DropdownMenuItem(value: 'urgent', child: Text('Urgent')),
                 ],
                 onChanged: _isLoading ? null : (val) => setState(() => _priority = val!),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _status,
+                initialValue: _status,
                 decoration: const InputDecoration(labelText: 'Status'),
                 items: const [
                   DropdownMenuItem(value: 'todo', child: Text('Todo')),
@@ -208,7 +224,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String?>(
-                value: _assigneeId,
+                initialValue: _assigneeId,
                 decoration: const InputDecoration(labelText: 'Assignee'),
                 items: [
                   const DropdownMenuItem(value: null, child: Text('Unassigned')),

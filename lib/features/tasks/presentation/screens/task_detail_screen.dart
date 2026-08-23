@@ -209,7 +209,7 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
                                   ),
                                   const SizedBox(height: 4),
                                   DropdownButtonFormField<String>(
-                                    value: task.status,
+                                    initialValue: task.status,
                                     isExpanded: true,
                                     decoration: const InputDecoration(
                                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -226,9 +226,9 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
                                               taskId: task.id,
                                               status: newStatus,
                                             ));
-                                        // Optmistic update detail state
-                                        context.read<TaskDetailCubit>().emit(
-                                              TaskDetailSuccess(task.copyWith(status: newStatus)),
+                                        // Optimistic update detail state
+                                        context.read<TaskDetailCubit>().updateTaskLocally(
+                                              task.copyWith(status: newStatus),
                                             );
                                       }
                                     },
@@ -450,16 +450,12 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
           ));
 
       // Optimistically update the details view
-      context.read<TaskDetailCubit>().emit(
-            TaskDetailStateUpdateHelper.fromSuccessState(
-              context.read<TaskDetailCubit>().state,
-              task.copyWith(
-                assigneeId: selectedMember?.userId,
-                assigneeName: selectedMember?.name,
-                assigneeAvatarUrl: selectedMember?.avatarUrl,
-              ),
-            ),
-          );
+      final updatedTask = task.copyWith(
+        assigneeId: selectedMember?.userId,
+        assigneeName: selectedMember?.name,
+        assigneeAvatarUrl: selectedMember?.avatarUrl,
+      );
+      context.read<TaskDetailCubit>().updateTaskLocally(updatedTask);
     }
   }
 
@@ -479,11 +475,3 @@ class _TaskDetailViewState extends State<_TaskDetailView> {
   }
 }
 
-class TaskDetailStateUpdateHelper {
-  static TaskDetailState fromSuccessState(TaskDetailState state, TaskEntity updatedTask) {
-    if (state is TaskDetailSuccess) {
-      return TaskDetailSuccess(updatedTask);
-    }
-    return state;
-  }
-}
