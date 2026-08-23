@@ -39,14 +39,21 @@ class SecureStorageService {
   Future<void> updateAccessToken({
     required String accessToken,
     required DateTime expiresAt,
+    String? refreshToken,
   }) async {
     try {
-      await Future.wait([
+      final futures = [
         _storage.write(key: AppConstants.storageAccessToken, value: accessToken),
         _storage.write(
             key: AppConstants.storageTokenExpiry,
             value: expiresAt.toIso8601String()),
-      ]);
+      ];
+      if (refreshToken != null) {
+        futures.add(
+          _storage.write(key: AppConstants.storageRefreshToken, value: refreshToken),
+        );
+      }
+      await Future.wait(futures);
     } catch (e) {
       throw const CacheException(message: 'Failed to update access token.');
     }

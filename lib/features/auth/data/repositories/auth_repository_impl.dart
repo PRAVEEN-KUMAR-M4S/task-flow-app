@@ -70,6 +70,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await _secureStorage.updateAccessToken(
         accessToken: token.accessToken,
         expiresAt: token.expiresAt,
+        refreshToken: token.refreshToken,
       );
 
       return Right(token);

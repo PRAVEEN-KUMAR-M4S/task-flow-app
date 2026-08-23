@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:task_flow/core/constants/app_constants.dart';
 import 'package:task_flow/core/usecase/usecase.dart';
@@ -117,10 +118,31 @@ class SessionCubit extends Cubit<SessionState> {
 
   void _startExpiryTimer() {
     _cancelTimer();
-    _expiryTimer = Timer(
-      const Duration(seconds: AppConstants.fallbackTokenExpirySeconds),
-      _onTokenExpiry,
-    );
+    _scheduleExpiryFromStorage();
+  }
+
+  /// Read the actual expiry from storage and schedule the timer accordingly.
+  Future<void> _scheduleExpiryFromStorage() async {
+    final expiresAt = await _secureStorage.getTokenExpiry();
+    if (expiresAt == null) {
+      debugPrint('[Auth] ⏱ No expiry stored, using fallback ${AppConstants.fallbackTokenExpirySeconds}s');
+      _expiryTimer = Timer(
+        const Duration(seconds: AppConstants.fallbackTokenExpirySeconds),
+        _onTokenExpiry,
+      );
+      return;
+    }
+
+    final now = DateTime.now();
+    final remaining = expiresAt.difference(now);
+    if (remaining.isNegative || remaining.inSeconds <= 0) {
+      debugPrint('[Auth] ⏱ Token already expired, refreshing now...');
+      // Already expired — refresh immediately.
+      _onTokenExpiry();
+    } else {
+      debugPrint('[Auth] ⏱ Token expires in ${remaining.inSeconds}s (at $expiresAt)');
+      _expiryTimer = Timer(remaining, _onTokenExpiry);
+    }
   }
 
   void _cancelTimer() {
@@ -129,8 +151,10 @@ class SessionCubit extends Cubit<SessionState> {
   }
 
   Future<void> _onTokenExpiry() async {
+    debugPrint('[Auth] 🔄 Access token expired — attempting refresh...');
     final refreshToken = await _secureStorage.getRefreshToken();
     if (refreshToken == null) {
+      debugPrint('[Auth] ❌ No refresh token found — session expired');
       emit(const SessionTokenExpired());
       return;
     }
@@ -138,11 +162,13 @@ class SessionCubit extends Cubit<SessionState> {
     final result = await _refreshTokenUseCase(NoParams());
     if (isClosed) return;
     result.fold(
-      (_) {
+      (failure) {
+        debugPrint('[Auth] ❌ Token refresh failed: ${failure.message}');
         // Refresh failed → force logout
         emit(const SessionTokenExpired());
       },
       (_) {
+        debugPrint('[Auth] ✅ Token refreshed successfully — timer restarted');
         // Refresh succeeded → restart timer
         _startExpiryTimer();
       },

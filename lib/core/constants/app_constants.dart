@@ -44,7 +44,7 @@ class AppConstants {
   /// Fallback access-token lifetime, used only when the mock login response
   /// omits `access_token_expires_in_seconds`. The real value comes from
   /// `auth_mock.mock_login_response` in the mock data.
-  static const int fallbackTokenExpirySeconds = 900;
+  static const int fallbackTokenExpirySeconds = 5;
 
   // ─── Error-Trigger Tokens ─────────────────────────────────────────────────
   /// Any project/task whose **id, name or title** contains one of these

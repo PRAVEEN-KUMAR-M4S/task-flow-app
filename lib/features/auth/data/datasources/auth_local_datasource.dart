@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:task_flow/core/error/exceptions.dart';
 import 'package:task_flow/core/mock/error_simulator.dart';
 import 'package:task_flow/core/mock/mock_database.dart';
@@ -126,8 +127,19 @@ class AuthLocalDatasourceImpl
     final orgId = await _secureStorage.getOrgId();
     if (userId == null || orgId == null) return null;
 
-    if (!await _secureStorage.hasValidSession()) return null;
+    // Access token is still valid — return user directly.
+    if (await _secureStorage.hasValidSession()) {
+      debugPrint('[Auth] 📦 Cached user found (token valid) — no refresh needed');
+      return _loadUser(userId, orgId);
+    }
 
+    // Access token expired — attempt silent refresh.
+    debugPrint('[Auth] 📦 Cached user found but access token expired — attempting silent refresh');
+    return _tryRefreshAndReturnUser(userId, orgId);
+  }
+
+  /// Load the user from mock data (token is valid).
+  Future<UserModel?> _loadUser(String userId, String orgId) async {
     await _db.ensureLoaded();
 
     final userJson = _db.users[userId];
@@ -141,6 +153,37 @@ class AuthLocalDatasourceImpl
       orgName: _orgName(orgId),
       role: membership['role'] as String,
     );
+  }
+
+  /// Try to refresh the access token silently and return the user.
+  Future<UserModel?> _tryRefreshAndReturnUser(
+    String userId,
+    String orgId,
+  ) async {
+    final storedRefreshToken = await _secureStorage.getRefreshToken();
+    if (storedRefreshToken == null || storedRefreshToken.isEmpty) {
+      debugPrint('[Auth] ❌ No refresh token in storage — cannot refresh');
+      return null;
+    }
+
+    try {
+      debugPrint('[Auth] 🔄 Silently refreshing token...');
+      final model = await refreshToken(storedRefreshToken);
+      final token = model.toEntity();
+
+      await _secureStorage.updateAccessToken(
+        accessToken: token.accessToken,
+        expiresAt: token.expiresAt,
+        refreshToken: token.refreshToken,
+      );
+
+      debugPrint('[Auth] ✅ Silent refresh succeeded — new expiry: ${token.expiresAt}');
+      return _loadUser(userId, orgId);
+    } catch (e) {
+      debugPrint('[Auth] ❌ Silent refresh failed: $e');
+      // Refresh failed — user must log in again.
+      return null;
+    }
   }
 
   // ─── Test Credentials ───────────────────────────────────────────────────
