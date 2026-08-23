@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:task_flow/core/constants/app_constants.dart';
 import 'package:task_flow/core/error/exceptions.dart';
 import 'package:task_flow/core/mock/error_simulator.dart';
@@ -94,7 +93,6 @@ class TaskLocalDatasourceImpl
 
     try {
       final box = HiveService.tasksBox;
-      var added = 0;
 
       for (final key in box.keys) {
         if (key is! String || !key.startsWith('tasks_')) continue;
@@ -111,12 +109,8 @@ class TaskLocalDatasourceImpl
             ..remove('_assignee_name')
             ..remove('_assignee_avatar_url');
           _db.tasks[id] = clean;
-          added++;
+       
         }
-      }
-
-      if (added > 0) {
-        debugPrint('[TaskDS] 🔄 Merged $added Hive-cached task(s) into MockDatabase');
       }
     } catch (_) {
       // Hive cache is best-effort.
@@ -162,17 +156,14 @@ class TaskLocalDatasourceImpl
       throw NotFoundException(message: 'Task "$taskId" no longer exists.');
     }
 
-    final rows = _db.comments.values
-        .where((row) => row['task_id'] == taskId)
-        .map((row) {
+    final rows =
+        _db.comments.values.where((row) => row['task_id'] == taskId).map((row) {
           final author = _db.users[row['author_id']];
           return TaskCommentModel.fromJson(row).toEntity(
             authorName: author?['name'] as String?,
             authorAvatarUrl: author?['avatar_url'] as String?,
           );
-        })
-        .toList()
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        }).toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
     return rows;
   }
@@ -197,7 +188,9 @@ class TaskLocalDatasourceImpl
 
     _validate(title: title, status: status, priority: priority);
     if (!_db.projects.containsKey(projectId)) {
-      throw NotFoundException(message: 'Project "$projectId" no longer exists.');
+      throw NotFoundException(
+        message: 'Project "$projectId" no longer exists.',
+      );
     }
     _requireKnownAssignee(assigneeId);
 
@@ -350,11 +343,9 @@ class TaskLocalDatasourceImpl
   }
 
   Future<void> _cacheProject(String projectId) => _cacheTasks(
-        projectId,
-        _db.tasks.values
-            .where((row) => row['project_id'] == projectId)
-            .toList(),
-      );
+    projectId,
+    _db.tasks.values.where((row) => row['project_id'] == projectId).toList(),
+  );
 
   Future<void> _cacheTasks(
     String projectId,
@@ -439,7 +430,8 @@ class TaskLocalDatasourceImpl
       // Live join when available, cached snapshot when reading offline.
       assigneeName:
           (user?['name'] as String?) ?? raw['_assignee_name'] as String?,
-      assigneeAvatarUrl: (user?['avatar_url'] as String?) ??
+      assigneeAvatarUrl:
+          (user?['avatar_url'] as String?) ??
           raw['_assignee_avatar_url'] as String?,
     );
   }

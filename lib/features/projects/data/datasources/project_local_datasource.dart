@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:task_flow/core/error/exceptions.dart';
 import 'package:task_flow/core/mock/error_simulator.dart';
 import 'package:task_flow/core/mock/mock_database.dart';
@@ -65,7 +64,6 @@ class ProjectLocalDatasourceImpl
 
     try {
       final box = HiveService.projectsBox;
-      var added = 0;
 
       for (final key in box.keys) {
         if (key is! String || !key.startsWith('projects_')) continue;
@@ -79,13 +77,7 @@ class ProjectLocalDatasourceImpl
 
           // This project was created locally in a previous session.
           _db.projects[id] = row;
-          added++;
         }
-      }
-
-      if (added > 0) {
-        debugPrint('[ProjectDS] 🔄 Merged $added Hive-cached project(s) into MockDatabase');
-        debugPrint('[ProjectDS]   └─ MockDatabase projects now has ${_db.projects.length} total');
       }
     } catch (_) {
       // Hive cache is best-effort; never fail the read.
@@ -103,11 +95,6 @@ class ProjectLocalDatasourceImpl
     final rows = _db.projects.values
         .where((row) => row['org_id'] == orgId)
         .toList(growable: false);
-
-    debugPrint('[ProjectDS] 📖 getProjects(orgId=$orgId) → ${rows.length} rows from MockDatabase');
-    for (final row in rows) {
-      debugPrint('[ProjectDS]   └─ ${row["id"]}: ${row["name"]}');
-    }
 
     final projects = rows.map(_buildProject).toList()
       ..sort((a, b) => b.lastActivityAt.compareTo(a.lastActivityAt));
@@ -165,8 +152,7 @@ class ProjectLocalDatasourceImpl
     };
 
     _db.projects[id] = raw;
-    debugPrint('[ProjectDS] ✅ Created project: $id (${raw["name"]}) in org=$orgId');
-    debugPrint('[ProjectDS]   └─ MockDatabase projects now has ${_db.projects.length} total');
+
     await _cacheOrg(orgId);
     return _buildProject(raw);
   }
@@ -202,7 +188,7 @@ class ProjectLocalDatasourceImpl
     };
 
     _db.projects[id] = updated;
-    debugPrint('[ProjectDS] ✏️ Updated project: $id (${updated["name"]})');
+
     await _cacheOrg(updated['org_id'] as String);
     return _buildProject(updated);
   }
@@ -219,7 +205,7 @@ class ProjectLocalDatasourceImpl
     }
 
     _db.projects.remove(id);
-    debugPrint('[ProjectDS] 🗑️ Deleted project: $id');
+
     // Cascade: a task can't outlive its project, and orphans would corrupt the
     // per-project counts on the next read.
     _db.tasks.removeWhere((_, task) => task['project_id'] == id);
@@ -262,9 +248,9 @@ class ProjectLocalDatasourceImpl
   }
 
   Future<void> _cacheOrg(String orgId) => _cacheProjects(
-        orgId,
-        _db.projects.values.where((row) => row['org_id'] == orgId).toList(),
-      );
+    orgId,
+    _db.projects.values.where((row) => row['org_id'] == orgId).toList(),
+  );
 
   Future<void> _cacheProjects(
     String orgId,

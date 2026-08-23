@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:task_flow/core/constants/app_constants.dart';
 import 'package:task_flow/core/usecase/usecase.dart';
@@ -61,38 +60,38 @@ class SessionCubit extends Cubit<SessionState> {
     required RefreshTokenUseCase refreshTokenUseCase,
     required GetCachedSessionUseCase getCachedSessionUseCase,
     required SecureStorageService secureStorage,
-  })  : _loginUseCase = loginUseCase,
-        _logoutUseCase = logoutUseCase,
-        _refreshTokenUseCase = refreshTokenUseCase,
-        _getCachedSessionUseCase = getCachedSessionUseCase,
-        _secureStorage = secureStorage,
-        super(const SessionInitial());
+  }) : _loginUseCase = loginUseCase,
+       _logoutUseCase = logoutUseCase,
+       _refreshTokenUseCase = refreshTokenUseCase,
+       _getCachedSessionUseCase = getCachedSessionUseCase,
+       _secureStorage = secureStorage,
+       super(const SessionInitial());
 
   // ─── Check Existing Session ───────────────────────────────────────────────
 
   Future<void> checkSession() async {
     emit(const SessionLoading());
     final result = await _getCachedSessionUseCase();
-    result.fold(
-      (failure) => emit(const SessionUnauthenticated()),
-      (user) {
-        if (user != null) {
-          emit(SessionAuthenticated(user));
-          _startExpiryTimer();
-        } else {
-          emit(const SessionUnauthenticated());
-        }
-      },
-    );
+    result.fold((failure) => emit(const SessionUnauthenticated()), (user) {
+      if (user != null) {
+        emit(SessionAuthenticated(user));
+        _startExpiryTimer();
+      } else {
+        emit(const SessionUnauthenticated());
+      }
+    });
   }
 
   // ─── Login ────────────────────────────────────────────────────────────────
 
-  Future<String?> login(
-      {required String email, required String password}) async {
+  Future<String?> login({
+    required String email,
+    required String password,
+  }) async {
     emit(const SessionLoading());
-    final result =
-        await _loginUseCase(LoginParams(email: email, password: password));
+    final result = await _loginUseCase(
+      LoginParams(email: email, password: password),
+    );
     return result.fold(
       (failure) {
         emit(const SessionUnauthenticated());
@@ -125,7 +124,6 @@ class SessionCubit extends Cubit<SessionState> {
   Future<void> _scheduleExpiryFromStorage() async {
     final expiresAt = await _secureStorage.getTokenExpiry();
     if (expiresAt == null) {
-      debugPrint('[Auth] ⏱ No expiry stored, using fallback ${AppConstants.fallbackTokenExpirySeconds}s');
       _expiryTimer = Timer(
         const Duration(seconds: AppConstants.fallbackTokenExpirySeconds),
         _onTokenExpiry,
@@ -136,11 +134,9 @@ class SessionCubit extends Cubit<SessionState> {
     final now = DateTime.now();
     final remaining = expiresAt.difference(now);
     if (remaining.isNegative || remaining.inSeconds <= 0) {
-      debugPrint('[Auth] ⏱ Token already expired, refreshing now...');
       // Already expired — refresh immediately.
       _onTokenExpiry();
     } else {
-      debugPrint('[Auth] ⏱ Token expires in ${remaining.inSeconds}s (at $expiresAt)');
       _expiryTimer = Timer(remaining, _onTokenExpiry);
     }
   }
@@ -151,10 +147,8 @@ class SessionCubit extends Cubit<SessionState> {
   }
 
   Future<void> _onTokenExpiry() async {
-    debugPrint('[Auth] 🔄 Access token expired — attempting refresh...');
     final refreshToken = await _secureStorage.getRefreshToken();
     if (refreshToken == null) {
-      debugPrint('[Auth] ❌ No refresh token found — session expired');
       emit(const SessionTokenExpired());
       return;
     }
@@ -163,12 +157,10 @@ class SessionCubit extends Cubit<SessionState> {
     if (isClosed) return;
     result.fold(
       (failure) {
-        debugPrint('[Auth] ❌ Token refresh failed: ${failure.message}');
         // Refresh failed → force logout
         emit(const SessionTokenExpired());
       },
       (_) {
-        debugPrint('[Auth] ✅ Token refreshed successfully — timer restarted');
         // Refresh succeeded → restart timer
         _startExpiryTimer();
       },

@@ -46,7 +46,6 @@ class _SplashScreenState extends State<SplashScreen> {
       return;
     }
 
-    debugPrint('[Auth] 🔐 Biometric unlock is enabled — prompting user');
     final didAuthenticate = await biometricService.authenticate(
       reason: 'Authenticate to unlock TaskFlow',
     );
@@ -54,10 +53,8 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     if (didAuthenticate) {
-      debugPrint('[Auth] 🔐 Biometric auth succeeded — navigating to home');
       _navigateHome();
     } else {
-      debugPrint('[Auth] 🔐 Biometric auth failed — navigating to login');
       context.go(AppConstants.routeLogin);
     }
   }
@@ -111,10 +108,7 @@ class _SplashScreenState extends State<SplashScreen> {
               const SizedBox(height: 8),
               const Text(
                 'Project Management',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 16,
-                ),
+                style: TextStyle(color: Colors.white70, fontSize: 16),
               ),
               const SizedBox(height: 48),
               const CircularProgressIndicator(

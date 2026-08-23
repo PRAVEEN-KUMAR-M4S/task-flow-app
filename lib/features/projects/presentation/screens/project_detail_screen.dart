@@ -15,7 +15,8 @@ import 'package:task_flow/features/users/domain/usecases/get_org_members_usecase
 import 'package:task_flow/shared/widgets/confirm_dialog.dart';
 import 'package:task_flow/shared/widgets/empty_view.dart';
 import 'package:task_flow/shared/widgets/error_view.dart';
-import 'package:task_flow/shared/widgets/loading_view.dart';
+import 'package:task_flow/shared/widgets/skeleton_loader.dart';
+import 'package:task_flow/shared/widgets/skeleton_task_card.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final String projectId;
@@ -116,7 +117,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       body: BlocBuilder<ProjectDetailCubit, ProjectDetailState>(
         builder: (context, projectState) {
           if (projectState is ProjectDetailLoading) {
-            return const LoadingView();
+            return const _ProjectDetailSkeleton();
           }
           if (projectState is ProjectDetailError) {
             return ErrorView(
@@ -210,9 +211,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   ),
                   BlocBuilder<TaskBloc, TaskState>(
                     builder: (context, taskState) {
-                      if (taskState is TaskLoading) {
-                        return const SliverFillRemaining(
-                          child: LoadingView(message: 'Loading tasks...'),
+                      if (taskState is TaskInitial || taskState is TaskLoading) {
+                        return SliverPadding(
+                          padding: const EdgeInsets.only(top: 8),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) => const SkeletonTaskCard(),
+                              childCount: 5,
+                            ),
+                          ),
                         );
                       }
                       if (taskState is TaskError) {
@@ -293,5 +300,57 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         context.pop();
       }
     }
+  }
+}
+
+/// Skeleton placeholder shown while project detail is loading.
+class _ProjectDetailSkeleton extends StatelessWidget {
+  const _ProjectDetailSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Description skeleton
+          SkeletonBox(height: 14, width: MediaQuery.of(context).size.width * 0.85),
+          const SizedBox(height: 8),
+          SkeletonBox(height: 14, width: MediaQuery.of(context).size.width * 0.6),
+          const SizedBox(height: 24),
+          // Task Summary skeleton
+          SkeletonBox(height: 18, width: MediaQuery.of(context).size.width * 0.35),
+          const SizedBox(height: 12),
+          Row(
+            children: List.generate(
+              4,
+              (i) => Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: i < 3 ? 8 : 0),
+                  child: const SkeletonBox(height: 40),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Tasks header skeleton
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SkeletonBox(height: 18, width: MediaQuery.of(context).size.width * 0.25),
+              SkeletonBox(height: 32, width: MediaQuery.of(context).size.width * 0.2),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Task list skeleton
+          ...List.generate(5, (_) => const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: SkeletonTaskCard(),
+          )),
+        ],
+      ),
+    );
   }
 }

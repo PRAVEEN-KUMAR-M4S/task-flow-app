@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 
 /// Wraps the `local_auth` plugin, providing biometric availability checks
@@ -6,7 +5,8 @@ import 'package:local_auth/local_auth.dart';
 class BiometricService {
   final LocalAuthentication _auth;
 
-  BiometricService({LocalAuthentication? auth}) : _auth = auth ?? LocalAuthentication();
+  BiometricService({LocalAuthentication? auth})
+    : _auth = auth ?? LocalAuthentication();
 
   /// Whether the device has biometric hardware and the user has enrolled
   /// at least one biometric.
@@ -14,7 +14,6 @@ class BiometricService {
     try {
       return await _auth.canCheckBiometrics;
     } catch (e) {
-      debugPrint('[Biometric] Error checking biometric capability: $e');
       return false;
     }
   }
@@ -25,7 +24,6 @@ class BiometricService {
     try {
       return await _auth.isDeviceSupported();
     } catch (e) {
-      debugPrint('[Biometric] Error checking device support: $e');
       return false;
     }
   }
@@ -35,7 +33,6 @@ class BiometricService {
     try {
       return await _auth.getAvailableBiometrics();
     } catch (e) {
-      debugPrint('[Biometric] Error listing biometrics: $e');
       return [];
     }
   }
@@ -53,17 +50,18 @@ class BiometricService {
   /// Prompts the user for biometric (or device PIN) authentication.
   ///
   /// Returns `true` if the user authenticated successfully.
-  Future<bool> authenticate({String reason = 'Please authenticate to continue'}) async {
+  Future<bool> authenticate({
+    String reason = 'Please authenticate to continue',
+  }) async {
     try {
       final didAuthenticate = await _auth.authenticate(
         localizedReason: reason,
         biometricOnly: false, // allow PIN/pattern fallback
         persistAcrossBackgrounding: true,
       );
-      debugPrint('[Biometric] Auth result: $didAuthenticate');
+
       return didAuthenticate;
     } catch (e) {
-      debugPrint('[Biometric] Authentication error: $e');
       return false;
     }
   }

@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:task_flow/core/di/injection_container.dart';
 import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:task_flow/features/projects/domain/entities/project.dart';
 import 'package:task_flow/features/projects/presentation/cubit/project_list_cubit.dart';
@@ -10,7 +8,7 @@ import 'package:task_flow/features/projects/presentation/widgets/project_card.da
 import 'package:task_flow/shared/widgets/confirm_dialog.dart';
 import 'package:task_flow/shared/widgets/empty_view.dart';
 import 'package:task_flow/shared/widgets/error_view.dart';
-import 'package:task_flow/shared/widgets/loading_view.dart';
+import 'package:task_flow/shared/widgets/skeleton_project_card.dart';
 import 'package:task_flow/shared/widgets/stale_data_banner.dart';
 
 class ProjectListScreen extends StatefulWidget {
@@ -62,14 +60,18 @@ class _ProjectListView extends StatelessWidget {
       body: BlocBuilder<ProjectListCubit, ProjectListState>(
         builder: (context, state) {
           if (state is ProjectListLoading) {
-            return const LoadingView();
+            return ListView.builder(
+              itemCount: 5,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemBuilder: (context, index) => const SkeletonProjectCard(),
+            );
           }
           if (state is ProjectListError) {
             return ErrorView(
               message: state.failure.message,
-              onRetry: () => context
-                  .read<ProjectListCubit>()
-                  .loadProjects(orgId: user?.orgId ?? ''),
+              onRetry: () => context.read<ProjectListCubit>().loadProjects(
+                orgId: user?.orgId ?? '',
+              ),
             );
           }
           if (state is ProjectListEmpty) {
@@ -89,10 +91,9 @@ class _ProjectListView extends StatelessWidget {
           final projects = state is ProjectListSuccess
               ? state.projects
               : state is ProjectMutationLoading
-                  ? state.currentProjects
-                  : <Project>[];
-          final isStale =
-              state is ProjectListSuccess ? state.isStale : false;
+              ? state.currentProjects
+              : <Project>[];
+          final isStale = state is ProjectListSuccess ? state.isStale : false;
           final isMutating = state is ProjectMutationLoading;
 
           return RefreshIndicator(
@@ -113,9 +114,7 @@ class _ProjectListView extends StatelessWidget {
                       final project = projects[index];
                       return ProjectCard(
                         project: project,
-                        onTap: () => context.push(
-                          '/projects/${project.id}',
-                        ),
+                        onTap: () => context.push('/projects/${project.id}'),
                         onEdit: isAdmin
                             ? () => _showProjectForm(
                                 context,
@@ -147,7 +146,7 @@ class _ProjectListView extends StatelessWidget {
       '/projects/form',
       extra: {'project': project, 'isAdmin': isAdmin},
     );
-    debugPrint('[ProjectList] 🔄 Returned from form — refreshing...');
+
     if (context.mounted) {
       context.read<ProjectListCubit>().refresh();
     }
@@ -168,8 +167,8 @@ class _ProjectListView extends StatelessWidget {
     );
     if (confirmed == true && context.mounted) {
       final error = await context.read<ProjectListCubit>().deleteProject(
-            id: project.id,
-          );
+        id: project.id,
+      );
       if (error != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

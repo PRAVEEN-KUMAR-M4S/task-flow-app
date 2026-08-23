@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:task_flow/core/constants/app_constants.dart';
 import 'package:task_flow/core/network/connectivity_cubit.dart';
 import 'package:task_flow/core/theme/theme_cubit.dart';
 import 'package:task_flow/features/auth/presentation/cubit/login_cubit.dart';
@@ -19,14 +18,23 @@ import 'package:task_flow/features/users/presentation/cubit/org_members_cubit.da
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
 class MockSessionCubit extends Mock implements SessionCubit {}
+
 class MockThemeCubit extends Mock implements ThemeCubit {}
+
 class MockConnectivityCubit extends Mock implements ConnectivityCubit {}
+
 class MockProjectListCubit extends Mock implements ProjectListCubit {}
+
 class MockProjectFormCubit extends Mock implements ProjectFormCubit {}
+
 class MockTaskBloc extends Mock implements TaskBloc {}
+
 class MockTaskFormCubit extends Mock implements TaskFormCubit {}
+
 class MockTaskDetailCubit extends Mock implements TaskDetailCubit {}
+
 class MockOrgMembersCubit extends Mock implements OrgMembersCubit {}
+
 class MockNotificationCubit extends Mock implements NotificationCubit {}
 
 class FakeLoginCubit extends Cubit<LoginState> implements LoginCubit {
@@ -56,10 +64,12 @@ void main() {
   setUp(() {
     mockSession = MockSessionCubit();
     when(() => mockSession.state).thenReturn(const SessionInitial());
-    when(() => mockSession.login(
-      email: any(named: 'email'),
-      password: any(named: 'password'),
-    )).thenAnswer((_) async => 'Invalid email or password');
+    when(
+      () => mockSession.login(
+        email: any(named: 'email'),
+        password: any(named: 'password'),
+      ),
+    ).thenAnswer((_) async => 'Invalid email or password');
   });
 
   Widget buildApp() {
@@ -119,34 +129,48 @@ void main() {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextFormField).first, 'test@email.com');
+      await tester.enterText(
+        find.byType(TextFormField).first,
+        'test@email.com',
+      );
       await tester.enterText(find.byType(TextFormField).last, '123');
       await tester.tap(find.text('Sign In'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Password must be at least 6 characters'), findsOneWidget);
+      expect(
+        find.text('Password must be at least 6 characters'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('calls login with correct credentials', (tester) async {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextFormField).first, 'alice@alphacorp.com');
+      await tester.enterText(
+        find.byType(TextFormField).first,
+        'alice@alphacorp.com',
+      );
       await tester.enterText(find.byType(TextFormField).last, 'Password1');
       await tester.tap(find.text('Sign In'));
       await tester.pumpAndSettle();
 
-      verify(() => mockSession.login(
-        email: 'alice@alphacorp.com',
-        password: 'Password1',
-      )).called(1);
+      verify(
+        () => mockSession.login(
+          email: 'alice@alphacorp.com',
+          password: 'Password1',
+        ),
+      ).called(1);
     });
 
     testWidgets('shows error snackbar on failed login', (tester) async {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextFormField).first, 'wrong@email.com');
+      await tester.enterText(
+        find.byType(TextFormField).first,
+        'wrong@email.com',
+      );
       await tester.enterText(find.byType(TextFormField).last, 'wrongpass');
       await tester.tap(find.text('Sign In'));
       await tester.pumpAndSettle();

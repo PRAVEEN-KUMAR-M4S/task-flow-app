@@ -1,6 +1,3 @@
-/// Raw exceptions thrown by data sources.
-/// Repositories catch these and map them to [Failure] objects.
-
 class ServerException implements Exception {
   final String message;
   const ServerException({this.message = 'Server error'});

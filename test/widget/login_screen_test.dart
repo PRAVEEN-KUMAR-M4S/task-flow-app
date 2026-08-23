@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -76,7 +74,10 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextFormField).first, 'test@email.com');
+      await tester.enterText(
+        find.byType(TextFormField).first,
+        'test@email.com',
+      );
       await tester.tap(find.text('Sign In'));
       await tester.pumpAndSettle();
 
@@ -87,12 +88,18 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextFormField).first, 'test@email.com');
+      await tester.enterText(
+        find.byType(TextFormField).first,
+        'test@email.com',
+      );
       await tester.enterText(find.byType(TextFormField).last, '123');
       await tester.tap(find.text('Sign In'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Password must be at least 6 characters'), findsOneWidget);
+      expect(
+        find.text('Password must be at least 6 characters'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('has register link', (tester) async {

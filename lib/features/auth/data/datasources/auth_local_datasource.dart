@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:task_flow/core/error/exceptions.dart';
 import 'package:task_flow/core/mock/error_simulator.dart';
 import 'package:task_flow/core/mock/mock_database.dart';
@@ -39,8 +38,8 @@ class AuthLocalDatasourceImpl
     required SecureStorageService secureStorage,
     required MockDatabase database,
     required this.errorSimulator,
-  })  : _secureStorage = secureStorage,
-        _db = database;
+  }) : _secureStorage = secureStorage,
+       _db = database;
 
   // ─── Login ──────────────────────────────────────────────────────────────
 
@@ -69,7 +68,8 @@ class AuthLocalDatasourceImpl
     // `test_credentials` has no `user_id`, so the account is resolved by the
     // e-mail address it shares with the `users` table.
     final userJson = _db.users.values.firstWhere(
-      (row) => (row['email'] as String?)?.trim().toLowerCase() == normalizedEmail,
+      (row) =>
+          (row['email'] as String?)?.trim().toLowerCase() == normalizedEmail,
       orElse: () => throw ServerException(
         message: 'No user in the mock data matches "$email".',
       ),
@@ -129,12 +129,11 @@ class AuthLocalDatasourceImpl
 
     // Access token is still valid — return user directly.
     if (await _secureStorage.hasValidSession()) {
-      debugPrint('[Auth] 📦 Cached user found (token valid) — no refresh needed');
       return _loadUser(userId, orgId);
     }
 
     // Access token expired — attempt silent refresh.
-    debugPrint('[Auth] 📦 Cached user found but access token expired — attempting silent refresh');
+
     return _tryRefreshAndReturnUser(userId, orgId);
   }
 
@@ -162,12 +161,10 @@ class AuthLocalDatasourceImpl
   ) async {
     final storedRefreshToken = await _secureStorage.getRefreshToken();
     if (storedRefreshToken == null || storedRefreshToken.isEmpty) {
-      debugPrint('[Auth] ❌ No refresh token in storage — cannot refresh');
       return null;
     }
 
     try {
-      debugPrint('[Auth] 🔄 Silently refreshing token...');
       final model = await refreshToken(storedRefreshToken);
       final token = model.toEntity();
 
@@ -177,10 +174,8 @@ class AuthLocalDatasourceImpl
         refreshToken: token.refreshToken,
       );
 
-      debugPrint('[Auth] ✅ Silent refresh succeeded — new expiry: ${token.expiresAt}');
       return _loadUser(userId, orgId);
     } catch (e) {
-      debugPrint('[Auth] ❌ Silent refresh failed: $e');
       // Refresh failed — user must log in again.
       return null;
     }
