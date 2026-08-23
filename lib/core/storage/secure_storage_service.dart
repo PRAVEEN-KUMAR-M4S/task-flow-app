@@ -86,6 +86,19 @@ class SecureStorageService {
     return DateTime.now().isBefore(expiry);
   }
 
+  // ─── Theme Preference ────────────────────────────────────────────────
+
+  Future<String?> getThemeMode() async {
+    return _storage.read(key: AppConstants.storageThemeMode);
+  }
+
+  Future<void> setThemeMode({required String mode}) async {
+    await _storage.write(
+      key: AppConstants.storageThemeMode,
+      value: mode,
+    );
+  }
+
   // ─── Biometric Preference ──────────────────────────────────────────────
 
   Future<bool> isBiometricEnabled() async {

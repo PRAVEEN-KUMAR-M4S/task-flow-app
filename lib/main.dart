@@ -28,6 +28,9 @@ void main() async {
   // Initialize Dependency Injection
   await di.init();
 
+  // Load persisted theme preference
+  await di.sl<ThemeCubit>().loadTheme();
+
   runApp(const TaskFlowApp());
 }
 

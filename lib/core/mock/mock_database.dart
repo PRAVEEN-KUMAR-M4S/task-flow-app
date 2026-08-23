@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:task_flow/core/constants/app_constants.dart';
 import 'package:task_flow/core/error/exceptions.dart';
+import 'package:task_flow/core/storage/hive_service.dart';
 
 /// In-memory, mutable stand-in for a remote database, seeded once from
 /// `assets/mock_data/mock-data.json`.
@@ -144,10 +145,42 @@ class MockDatabase {
     );
   }
 
+  // ─── Hive → MockDatabase cross-datasource merge ─────────────────────────
+
+  bool _tasksHiveMerged = false;
+
+  /// Merges Hive-cached tasks into [tasks] so that project task counts
+  /// are accurate even when [ProjectLocalDatasource] runs before
+  /// [TaskLocalDatasource].  Called once per session.
+  Future<void> mergeHiveTasks() async {
+    if (_tasksHiveMerged) return;
+    _tasksHiveMerged = true;
+    try {
+      final box = HiveService.tasksBox;
+      for (final key in box.keys) {
+        if (key is! String || !key.startsWith('tasks_')) continue;
+        final rows = HiveService.readList(box, key);
+        if (rows == null) continue;
+        for (final row in rows) {
+          final id = row['id'] as String?;
+          if (id == null) continue;
+          if (tasks.containsKey(id)) continue;
+          final clean = Map<String, dynamic>.from(row)
+            ..remove('_assignee_name')
+            ..remove('_assignee_avatar_url');
+          tasks[id] = clean;
+        }
+      }
+    } catch (_) {
+      // Hive cache is best-effort.
+    }
+  }
+
   /// Drops all state so the next [ensureLoaded] re-seeds from the asset.
   /// Used by tests to isolate mutations between cases.
   @visibleForTesting
   void reset() {
+    _tasksHiveMerged = false;
     organizations.clear();
     users.clear();
     projects.clear();

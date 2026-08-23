@@ -28,10 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
@@ -77,13 +74,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: _currentIndex == 2
-          ? FloatingActionButton(
-              onPressed: () => context.push(AppConstants.routeSettings),
-              tooltip: 'Settings',
-              child: const Icon(Icons.settings_rounded),
-            )
-          : null,
     );
   }
 }

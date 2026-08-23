@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:task_flow/shared/widgets/app_avatar.dart';
 import 'package:task_flow/shared/widgets/confirm_dialog.dart';
@@ -100,7 +101,29 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 16),
+            // Settings Button
+            OutlinedButton.icon(
+              onPressed: () => context.push('/settings'),
+              icon: Icon(
+                Icons.settings_outlined,
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
+              ),
+              label: Text(
+                'Settings',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.8),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(
+                  color: theme.colorScheme.outline.withOpacity(0.3),
+                ),
+                minimumSize: const Size.fromHeight(50),
+              ),
+            ),
+            const SizedBox(height: 12),
             // Logout Button
             OutlinedButton.icon(
               onPressed: () => _confirmLogout(context),

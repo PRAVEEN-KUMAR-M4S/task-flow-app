@@ -82,6 +82,10 @@ class ProjectLocalDatasourceImpl
     } catch (_) {
       // Hive cache is best-effort; never fail the read.
     }
+
+    // Ensure Hive-cached tasks are also in-memory so that _countsFor()
+    // returns correct numbers for locally-created projects.
+    await _db.mergeHiveTasks();
   }
 
   // ─── Reads ──────────────────────────────────────────────────────────────

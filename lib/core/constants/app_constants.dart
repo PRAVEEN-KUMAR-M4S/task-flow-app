@@ -30,6 +30,7 @@ class AppConstants {
   static const String storageOrgId = 'org_id';
   static const String storageTokenExpiry = 'token_expiry';
   static const String storageBiometricEnabled = 'biometric_enabled';
+  static const String storageThemeMode = 'theme_mode';
 
   // ─── Asset Paths ──────────────────────────────────────────────────────────
   static const String mockDataAsset = 'assets/mock_data/mock-data.json';

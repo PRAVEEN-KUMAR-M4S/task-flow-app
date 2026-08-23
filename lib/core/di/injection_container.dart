@@ -73,7 +73,7 @@ Future<void> init() async {
       () => SecureStorageService(storage: sl()));
 
   sl.registerLazySingleton<ConnectivityCubit>(() => ConnectivityCubit());
-  sl.registerLazySingleton<ThemeCubit>(() => ThemeCubit());
+  sl.registerLazySingleton<ThemeCubit>(() => ThemeCubit(secureStorage: sl()));
 
   // ─── Mock Infrastructure ───────────────────────────────────────────────────
   sl.registerLazySingleton<MockDatabase>(() => MockDatabase());
