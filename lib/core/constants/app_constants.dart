@@ -29,6 +29,7 @@ class AppConstants {
   static const String storageUserId = 'user_id';
   static const String storageOrgId = 'org_id';
   static const String storageTokenExpiry = 'token_expiry';
+  static const String storageBiometricEnabled = 'biometric_enabled';
 
   // ─── Asset Paths ──────────────────────────────────────────────────────────
   static const String mockDataAsset = 'assets/mock_data/mock-data.json';
@@ -44,9 +45,6 @@ class AppConstants {
   /// omits `access_token_expires_in_seconds`. The real value comes from
   /// `auth_mock.mock_login_response` in the mock data.
   static const int fallbackTokenExpirySeconds = 900;
-
-  /// How long before actual expiry the session proactively refreshes the token.
-  static const int tokenRefreshLeadSeconds = 30;
 
   // ─── Error-Trigger Tokens ─────────────────────────────────────────────────
   /// Any project/task whose **id, name or title** contains one of these
@@ -69,13 +67,27 @@ class AppConstants {
 
   /// Task statuses, in workflow order. These are exactly the values present in
   /// `mock-data.json` — note `review`, not `blocked`.
-  static const List<String> taskStatuses = ['todo', 'in_progress', 'review', 'done'];
+  static const List<String> taskStatuses = [
+    'todo',
+    'in_progress',
+    'review',
+    'done',
+  ];
 
   /// Task priorities, lowest first. Again taken from the mock data — the top
   /// band is `urgent`, not `critical`.
-  static const List<String> taskPriorities = ['low', 'medium', 'high', 'urgent'];
+  static const List<String> taskPriorities = [
+    'low',
+    'medium',
+    'high',
+    'urgent',
+  ];
 
-  static const List<String> projectStatuses = ['active', 'completed', 'archived'];
+  static const List<String> projectStatuses = [
+    'active',
+    'completed',
+    'archived',
+  ];
 
   /// Sentinel assignee filter value meaning "no assignee". A plain `null` can't
   /// express it because `null` already means "don't filter by assignee".
@@ -86,9 +98,11 @@ class AppConstants {
     if (token.isEmpty) return '';
     return token
         .split('_')
-        .map((word) => word.isEmpty
-            ? word
-            : '${word[0].toUpperCase()}${word.substring(1)}')
+        .map(
+          (word) => word.isEmpty
+              ? word
+              : '${word[0].toUpperCase()}${word.substring(1)}',
+        )
         .join(' ');
   }
 }

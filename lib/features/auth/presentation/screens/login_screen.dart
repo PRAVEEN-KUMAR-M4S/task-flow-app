@@ -44,9 +44,9 @@ class _LoginViewState extends State<_LoginView> {
   void _submit() {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<LoginCubit>().login(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          );
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
     }
   }
 
@@ -58,10 +58,12 @@ class _LoginViewState extends State<_LoginView> {
         if (state is LoginFailure) {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(
-              content: Text(state.message),
-              backgroundColor: theme.colorScheme.error,
-            ));
+            ..showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: theme.colorScheme.error,
+              ),
+            );
         } else if (state is LoginSuccess) {
           context.go(AppConstants.routeHome);
         }
@@ -133,7 +135,9 @@ class _LoginViewState extends State<_LoginView> {
                         if (value == null || value.trim().isEmpty) {
                           return 'Email is required';
                         }
-                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value.trim())) {
+                        if (!RegExp(
+                          r'^[^@]+@[^@]+\.[^@]+',
+                        ).hasMatch(value.trim())) {
                           return 'Enter a valid email address';
                         }
                         return null;
@@ -201,45 +205,6 @@ class _LoginViewState extends State<_LoginView> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 32),
-                    // Test credentials hint
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: theme.colorScheme.outline.withOpacity(0.3),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                size: 16,
-                                color: theme.colorScheme.primary,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Test Credentials',
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  color: theme.colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          _credentialRow(theme, 'Org A Admin', 'alice@alphacorp.com', 'Admin@123'),
-                          _credentialRow(theme, 'Org A Member', 'bob@alphacorp.com', 'Member@123'),
-                          _credentialRow(theme, 'Org B Admin', 'carol@betalabs.com', 'Admin@123'),
-                          _credentialRow(theme, 'Org B Member', 'david@betalabs.com', 'Member@123'),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -247,35 +212,6 @@ class _LoginViewState extends State<_LoginView> {
           ),
         );
       },
-    );
-  }
-
-  Widget _credentialRow(ThemeData theme, String role, String email, String password) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 90,
-            child: Text(
-              role,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              '$email / $password',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
-                fontFamily: 'monospace',
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
