@@ -38,6 +38,7 @@ import 'package:task_flow/features/tasks/domain/repositories/task_repository.dar
 import 'package:task_flow/features/tasks/domain/usecases/assign_task_usecase.dart';
 import 'package:task_flow/features/tasks/domain/usecases/create_task_usecase.dart';
 import 'package:task_flow/features/tasks/domain/usecases/delete_task_usecase.dart';
+import 'package:task_flow/features/tasks/domain/usecases/get_comments_usecase.dart';
 import 'package:task_flow/features/tasks/domain/usecases/get_task_detail_usecase.dart';
 import 'package:task_flow/features/tasks/domain/usecases/get_tasks_usecase.dart';
 import 'package:task_flow/features/tasks/domain/usecases/update_task_status_usecase.dart';
@@ -133,6 +134,7 @@ Future<void> init() async {
   // Tasks Use Cases
   sl.registerLazySingleton(() => GetTasksUseCase(sl()));
   sl.registerLazySingleton(() => GetTaskDetailUseCase(sl()));
+  sl.registerLazySingleton(() => GetCommentsUseCase(sl()));
   sl.registerLazySingleton(() => CreateTaskUseCase(sl()));
   sl.registerLazySingleton(() => UpdateTaskUseCase(repository: sl(), userRepository: sl()));
   sl.registerLazySingleton(() => DeleteTaskUseCase(sl()));
@@ -181,6 +183,7 @@ Future<void> init() async {
 
   sl.registerLazySingleton(() => TaskDetailCubit(
         getTaskDetailUseCase: sl(),
+        getCommentsUseCase: sl(),
       ));
 
   sl.registerLazySingleton(() => OrgMembersCubit(getOrgMembersUseCase: sl()));

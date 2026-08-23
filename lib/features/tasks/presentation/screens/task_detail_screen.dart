@@ -1,10 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:task_flow/core/constants/app_constants.dart';
 import 'package:task_flow/core/di/injection_container.dart';
 import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:task_flow/features/tasks/domain/entities/task_entity.dart';
@@ -29,36 +26,12 @@ class TaskDetailScreen extends StatefulWidget {
 }
 
 class _TaskDetailScreenState extends State<TaskDetailScreen> {
-  late Future<List<Map<String, dynamic>>> _commentsFuture;
-
   @override
   void initState() {
     super.initState();
     // Reset cubit and load data — root-level singletons
     sl<TaskDetailCubit>().reset();
     sl<TaskDetailCubit>().loadTask(widget.taskId);
-    _commentsFuture = _loadComments();
-  }
-
-  Future<List<Map<String, dynamic>>> _loadComments() async {
-    final jsonString = await rootBundle.loadString(AppConstants.mockDataAsset);
-    final data = json.decode(jsonString) as Map<String, dynamic>;
-    final allComments = (data['comments'] as List).cast<Map<String, dynamic>>();
-    final users = (data['users'] as List).cast<Map<String, dynamic>>();
-
-    final taskComments = allComments.where((c) => c['task_id'] == widget.taskId).toList();
-
-    return taskComments.map((comment) {
-      final userId = comment['user_id'] as String?;
-      final user = userId != null
-          ? users.firstWhere((u) => u['id'] == userId, orElse: () => <String, dynamic>{})
-          : <String, dynamic>{};
-      return {
-        ...comment,
-        'user_name': user['name'] ?? 'Unknown User',
-        'user_avatar': user['avatar_url'],
-      };
-    }).toList();
   }
 
   @override
@@ -150,9 +123,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 return RefreshIndicator(
                   onRefresh: () async {
                     context.read<TaskDetailCubit>().refresh(widget.taskId);
-                    setState(() {
-                      _commentsFuture = _loadComments();
-                    });
                   },
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
@@ -319,71 +289,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 12),
-                        FutureBuilder<List<Map<String, dynamic>>>(
-                          future: _commentsFuture,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return const Center(child: CircularProgressIndicator());
-                            }
-                            final comments = snapshot.data ?? [];
-                            if (comments.isEmpty) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                child: Center(
-                                  child: Text(
-                                    'No comments yet.',
-                                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
-                                  ),
-                                ),
-                              );
-                            }
-                            return ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: comments.length,
-                              separatorBuilder: (context, index) => const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                final comment = comments[index];
-                                final createdAt = comment['created_at'] as String?;
-                                final date = createdAt != null ? DateTime.tryParse(createdAt) : null;
-                                return Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    AppAvatar(
-                                      imageUrl: comment['user_avatar'] as String?,
-                                      name: (comment['user_name'] as String?) ?? 'Unknown',
-                                      radius: 16,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                (comment['user_name'] as String?) ?? 'Unknown',
-                                                style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
-                                              ),
-                                              if (date != null)
-                                                Text(
-                                                  DateFormat('MMM d, h:mm a').format(date),
-                                                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
-                                                ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text((comment['content'] as String?) ?? ''),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                        ),
+                        _buildCommentsSection(context, state, theme),
                         const SizedBox(height: 32),
                       ],
                     ),
@@ -395,6 +301,71 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildCommentsSection(
+    BuildContext context,
+    TaskDetailSuccess state,
+    ThemeData theme,
+  ) {
+    if (state.commentsLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (state.comments.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Center(
+          child: Text(
+            'No comments yet.',
+            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: state.comments.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final comment = state.comments[index];
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AppAvatar(
+              imageUrl: comment.authorAvatarUrl,
+              name: comment.authorName,
+              radius: 16,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        comment.authorName,
+                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        DateFormat('MMM d, h:mm a').format(comment.createdAt),
+                        style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(comment.body),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

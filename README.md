@@ -585,22 +585,18 @@ All test accounts use the password `Password123!`.
 
 ## Known Limitations & Trade-offs
 
-1. **In-memory mutations reset on cold restart**: `MockDatabase` re-seeds from the JSON asset on each app launch. Hive cache preserves the last-fetched state for offline reading, but any project/task created during a session is lost on restart. This is by design for a mock app — in production, mutations would persist to a real backend.
+1. **Register is simulated**: The Register screen shows a success dialog but does not create a new user in the mock database or log the user in. The user must sign in with existing test credentials.
 
-2. **Register is simulated**: The Register screen shows a success dialog but does not create a new user in the mock database or log the user in. The user must sign in with existing test credentials.
+2. **No pending-operations queue for offline writes**: Offline writes are rejected outright with an error message rather than queued and synced. A local queue with reconciliation on reconnection would be more robust but adds significant complexity.
 
-3. **No pending-operations queue for offline writes**: Offline writes are rejected outright with an error message rather than queued and synced. A local queue with reconciliation on reconnection would be more robust but adds significant complexity.
+3. **No push notifications**: The notification list is a static mock from the JSON asset. Real-time notifications via FCM or similar are not implemented.
 
-4. **No push notifications**: The notification list is a static mock from the JSON asset. Real-time notifications via FCM or similar are not implemented.
+4. **Single-org per session**: Users cannot switch organizations. The org is determined at login by the test credential row.
 
-5. **Single-org per session**: Users cannot switch organizations. The org is determined at login by the test credential row.
+5. **No request cancellation**: Data-layer operations don't support cancellation tokens. In a real backend integration, `CancelableOperation` or Dart `Completer` patterns would be used.
 
-6. **No request cancellation**: Data-layer operations don't support cancellation tokens. In a real backend integration, `CancelableOperation` or Dart `Completer` patterns would be used.
+6. **Tablet layout not specifically optimized**: The UI uses responsive flex widgets and adapts to screen size, but there is no dedicated tablet/landscape layout (e.g., master-detail split view).
 
-7. **Comments read from MockDatabase, not a dedicated repository**: Comments are loaded directly from `MockDatabase` rather than through a `CommentRepository`. This is a pragmatic shortcut — the comments UI works, but the architecture layer isn't as clean as it could be.
+7. **No internationalization (i18n)**: All strings are hardcoded in English. Adding `flutter_localizations` + ARB files would be the standard approach.
 
-8. **Tablet layout not specifically optimized**: The UI uses responsive flex widgets and adapts to screen size, but there is no dedicated tablet/landscape layout (e.g., master-detail split view).
-
-9. **No internationalization (i18n)**: All strings are hardcoded in English. Adding `flutter_localizations` + ARB files would be the standard approach.
-
-10. **No golden tests or code coverage report**: The test suite covers functional logic but not visual regression (golden tests). Coverage reports can be generated with `flutter test --coverage` and viewed with `lcov`.
+8. **No golden tests or code coverage report**: The test suite covers functional logic but not visual regression (golden tests). Coverage reports can be generated with `flutter test --coverage` and viewed with `lcov`.
