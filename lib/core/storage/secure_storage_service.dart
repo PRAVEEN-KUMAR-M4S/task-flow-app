@@ -86,6 +86,20 @@ class SecureStorageService {
     return DateTime.now().isBefore(expiry);
   }
 
+  // ─── Biometric Preference ──────────────────────────────────────────────
+
+  Future<bool> isBiometricEnabled() async {
+    final value = await _storage.read(key: AppConstants.storageBiometricEnabled);
+    return value == 'true';
+  }
+
+  Future<void> setBiometricEnabled({required bool enabled}) async {
+    await _storage.write(
+      key: AppConstants.storageBiometricEnabled,
+      value: enabled.toString(),
+    );
+  }
+
   // ─── Clear ──────────────────────────────────────────────────────────────
 
   Future<void> clearSession() async {

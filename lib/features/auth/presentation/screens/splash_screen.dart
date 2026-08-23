@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:task_flow/core/constants/app_constants.dart';
+import 'package:task_flow/core/di/injection_container.dart';
+import 'package:task_flow/core/services/biometric_service.dart';
+import 'package:task_flow/core/storage/secure_storage_service.dart';
 import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -12,6 +15,8 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  bool _biometricPrompted = false;
+
   @override
   void initState() {
     super.initState();
@@ -22,12 +27,52 @@ class _SplashScreenState extends State<SplashScreen> {
     await context.read<SessionCubit>().checkSession();
   }
 
+  Future<void> _promptBiometricAndNavigate() async {
+    if (_biometricPrompted) return;
+    _biometricPrompted = true;
+
+    final secureStorage = sl<SecureStorageService>();
+    final biometricService = sl<BiometricService>();
+
+    final biometricEnabled = await secureStorage.isBiometricEnabled();
+    if (!biometricEnabled) {
+      _navigateHome();
+      return;
+    }
+
+    final canCheck = await biometricService.canCheckBiometrics;
+    if (!canCheck) {
+      _navigateHome();
+      return;
+    }
+
+    debugPrint('[Auth] 🔐 Biometric unlock is enabled — prompting user');
+    final didAuthenticate = await biometricService.authenticate(
+      reason: 'Authenticate to unlock TaskFlow',
+    );
+
+    if (!mounted) return;
+
+    if (didAuthenticate) {
+      debugPrint('[Auth] 🔐 Biometric auth succeeded — navigating to home');
+      _navigateHome();
+    } else {
+      debugPrint('[Auth] 🔐 Biometric auth failed — navigating to login');
+      context.go(AppConstants.routeLogin);
+    }
+  }
+
+  void _navigateHome() {
+    if (!mounted) return;
+    context.go(AppConstants.routeHome);
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<SessionCubit, SessionState>(
       listener: (context, state) {
         if (state is SessionAuthenticated) {
-          context.go(AppConstants.routeHome);
+          _promptBiometricAndNavigate();
         } else if (state is SessionUnauthenticated ||
             state is SessionTokenExpired) {
           context.go(AppConstants.routeLogin);

@@ -201,7 +201,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                 items: const [
                   DropdownMenuItem(value: 'todo', child: Text('Todo')),
                   DropdownMenuItem(value: 'in_progress', child: Text('In Progress')),
-                  DropdownMenuItem(value: 'blocked', child: Text('Blocked')),
+                  DropdownMenuItem(value: 'review', child: Text('Review')),
                   DropdownMenuItem(value: 'done', child: Text('Done')),
                 ],
                 onChanged: _isLoading ? null : (val) => setState(() => _status = val!),

@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:task_flow/core/mock/error_simulator.dart';
 import 'package:task_flow/core/mock/mock_database.dart';
 import 'package:task_flow/core/network/connectivity_cubit.dart';
+import 'package:task_flow/core/services/biometric_service.dart';
 import 'package:task_flow/core/storage/secure_storage_service.dart';
 import 'package:task_flow/core/theme/theme_cubit.dart';
 
@@ -104,6 +105,7 @@ Future<void> init() async {
   // ─── Services ─────────────────────────────────────────────────────────────
   sl.registerLazySingleton<AuthorizationService>(
       () => AuthorizationService(authRepository: sl()));
+  sl.registerLazySingleton<BiometricService>(() => BiometricService());
 
   // ─── Use Cases ────────────────────────────────────────────────────────────
   // Auth Use Cases

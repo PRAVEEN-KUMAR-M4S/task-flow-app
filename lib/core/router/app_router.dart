@@ -43,8 +43,10 @@ class AppRouter {
       }
 
       // If user is authenticated
+      // Don't redirect away from splash — the SplashScreen handles biometric
+      // prompt and its own navigation via BlocListener.
       if (sessionState is SessionAuthenticated) {
-        if (goingToAuth || goingToSplash) return AppConstants.routeHome;
+        if (goingToAuth) return AppConstants.routeHome;
         return null;
       }
 

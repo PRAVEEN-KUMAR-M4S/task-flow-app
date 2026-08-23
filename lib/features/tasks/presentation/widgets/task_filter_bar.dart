@@ -24,8 +24,8 @@ class _TaskFilterBarState extends State<TaskFilterBar> {
   String? _selectedStatus;
   String? _selectedPriority;
 
-  final List<String> _statuses = ['', 'todo', 'in_progress', 'blocked', 'done'];
-  final List<String> _priorities = ['', 'low', 'medium', 'high', 'critical'];
+  final List<String> _statuses = ['', 'todo', 'in_progress', 'review', 'done'];
+  final List<String> _priorities = ['', 'low', 'medium', 'high', 'urgent'];
 
   @override
   void dispose() {
