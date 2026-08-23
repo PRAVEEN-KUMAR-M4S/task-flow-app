@@ -25,8 +25,12 @@ class _ProjectListScreenState extends State<ProjectListScreen> {
   void initState() {
     super.initState();
     // ProjectListCubit is provided at app root — fire initial load here
-    final orgId = context.read<SessionCubit>().currentUser?.orgId ?? '';
-    sl<ProjectListCubit>().loadProjects(orgId: orgId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final orgId = context.read<SessionCubit>().currentUser?.orgId ?? '';
+        context.read<ProjectListCubit>().loadProjects(orgId: orgId);
+      }
+    });
   }
 
   @override

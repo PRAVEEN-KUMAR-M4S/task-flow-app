@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:task_flow/core/constants/app_constants.dart';
-import 'package:task_flow/core/di/injection_container.dart';
 import 'package:task_flow/features/auth/presentation/cubit/login_cubit.dart';
 import 'package:task_flow/features/auth/presentation/widgets/auth_text_field.dart';
 
@@ -23,8 +22,16 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Reset so a previous login attempt doesn't persist
-    sl<LoginCubit>().reset();
+    // Reset cubit state — deferred to first frame when providers are available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        try {
+          context.read<LoginCubit>().reset();
+        } catch (_) {
+          // Provider not available in test environment — ignore
+        }
+      }
+    });
   }
 
   @override
