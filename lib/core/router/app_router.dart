@@ -1,9 +1,6 @@
-import 'dart:async';
-
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:task_flow/core/constants/app_constants.dart';
-import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
+import 'package:task_flow/core/router/auth_router_state.dart';
 import 'package:task_flow/features/auth/presentation/screens/login_screen.dart';
 import 'package:task_flow/features/auth/presentation/screens/register_screen.dart';
 import 'package:task_flow/features/auth/presentation/screens/splash_screen.dart';
@@ -16,28 +13,37 @@ import 'package:task_flow/features/tasks/domain/entities/task_entity.dart';
 import 'package:task_flow/features/tasks/presentation/screens/task_detail_screen.dart';
 import 'package:task_flow/features/tasks/presentation/screens/task_form_screen.dart';
 
+/// App-wide router.
+///
+/// Depends only on [AuthRouterState] (core-layer abstraction) —
+/// never imports [SessionCubit] or any feature presentation code.
 class AppRouter {
-  final SessionCubit sessionCubit;
+  final AuthRouterState authState;
 
-  AppRouter(this.sessionCubit);
+  AppRouter(this.authState);
 
   late final router = GoRouter(
     initialLocation: AppConstants.routeSplash,
-    refreshListenable: _GoRouterRefreshStream(sessionCubit.stream),
+
+    // AuthRouterState implements Listenable directly — no adapter needed.
+    refreshListenable: authState.listenable,
+
     redirect: (context, state) {
-      final sessionState = sessionCubit.state;
-      final goingToSplash = state.matchedLocation == AppConstants.routeSplash;
-      final goingToAuth = state.matchedLocation == AppConstants.routeLogin ||
+      final status = authState.status;
+      final goingToSplash =
+          state.matchedLocation == AppConstants.routeSplash;
+      final goingToAuth =
+          state.matchedLocation == AppConstants.routeLogin ||
           state.matchedLocation == AppConstants.routeRegister;
 
       // During initial load / splash check
-      if (sessionState is SessionInitial || sessionState is SessionLoading) {
+      if (status == AuthStatus.initial || status == AuthStatus.loading) {
         return goingToSplash ? null : AppConstants.routeSplash;
       }
 
       // If user is not authenticated
-      if (sessionState is SessionUnauthenticated ||
-          sessionState is SessionTokenExpired) {
+      if (status == AuthStatus.unauthenticated ||
+          status == AuthStatus.tokenExpired) {
         if (goingToAuth) return null;
         return AppConstants.routeLogin;
       }
@@ -45,13 +51,14 @@ class AppRouter {
       // If user is authenticated
       // Don't redirect away from splash — the SplashScreen handles biometric
       // prompt and its own navigation via BlocListener.
-      if (sessionState is SessionAuthenticated) {
+      if (status == AuthStatus.authenticated) {
         if (goingToAuth) return AppConstants.routeHome;
         return null;
       }
 
       return null;
     },
+
     routes: [
       GoRoute(
         path: AppConstants.routeSplash,
@@ -115,20 +122,4 @@ class AppRouter {
       ),
     ],
   );
-}
-
-class _GoRouterRefreshStream extends ChangeNotifier {
-  late final StreamSubscription<dynamic> _subscription;
-
-  _GoRouterRefreshStream(Stream<dynamic> stream) {
-    notifyListeners();
-    _subscription =
-        stream.asBroadcastStream().listen((dynamic _) => notifyListeners());
-  }
-
-  @override
-  void dispose() {
-    _subscription.cancel();
-    super.dispose();
-  }
 }

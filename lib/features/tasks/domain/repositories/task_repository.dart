@@ -59,4 +59,6 @@ abstract class TaskRepository {
     required String taskId,
     required String priority,
   });
+
+  Future<Either<Failure, TaskEntity>> toggleFavorite({required String taskId});
 }

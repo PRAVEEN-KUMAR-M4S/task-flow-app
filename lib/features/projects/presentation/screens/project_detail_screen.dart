@@ -7,7 +7,7 @@ import 'package:task_flow/features/projects/domain/entities/project.dart';
 import 'package:task_flow/features/projects/presentation/cubit/project_detail_cubit.dart';
 import 'package:task_flow/features/projects/presentation/cubit/project_list_cubit.dart';
 import 'package:task_flow/features/projects/presentation/widgets/task_summary_row.dart';
-import 'package:task_flow/features/tasks/presentation/bloc/task_bloc.dart';
+import 'package:task_flow/features/tasks/presentation/cubit/task_list_cubit.dart';
 import 'package:task_flow/features/tasks/presentation/widgets/task_card.dart';
 import 'package:task_flow/features/tasks/presentation/widgets/task_filter_bar.dart';
 import 'package:task_flow/features/users/domain/entities/org_member.dart';
@@ -36,7 +36,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     // Reset cubits and load data — all are root-level singletons
     sl<ProjectDetailCubit>().reset();
     sl<ProjectDetailCubit>().loadProject(widget.projectId);
-    sl<TaskBloc>().add(TasksLoadRequested(widget.projectId));
+    sl<TaskListCubit>().loadTasks(widget.projectId);
     _loadMembers();
   }
 
@@ -131,7 +131,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             return RefreshIndicator(
               onRefresh: () async {
                 context.read<ProjectDetailCubit>().refresh(widget.projectId);
-                context.read<TaskBloc>().add(TasksLoadRequested(widget.projectId));
+                sl<TaskListCubit>().loadTasks(widget.projectId);
               },
               child: CustomScrollView(
                 slivers: [
@@ -171,7 +171,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                                     extra: {'projectId': widget.projectId},
                                   ).then((_) {
                                     if (context.mounted) {
-                                      context.read<TaskBloc>().add(TasksLoadRequested(widget.projectId));
+                                      sl<TaskListCubit>().loadTasks(widget.projectId);
                                       context.read<ProjectDetailCubit>().refresh(widget.projectId);
                                     }
                                   });
@@ -201,17 +201,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         DateTime? dueFrom,
                         DateTime? dueTo,
                       }) {
-                        context.read<TaskBloc>().add(TaskFilterChanged(
-                              status: status,
-                              priority: priority,
-                              assigneeId: assigneeId,
-                            ));
+                        final cubit = sl<TaskListCubit>();
+                        cubit.filterByStatus(status);
+                        cubit.filterByPriority(priority);
+                        cubit.filterByAssignee(assigneeId);
                       },
                     ),
                   ),
-                  BlocBuilder<TaskBloc, TaskState>(
+                  BlocBuilder<TaskListCubit, TaskListState>(
                     builder: (context, taskState) {
-                      if (taskState is TaskInitial || taskState is TaskLoading) {
+                      if (taskState is TaskListInitial || taskState is TaskListLoading) {
                         return SliverPadding(
                           padding: const EdgeInsets.only(top: 8),
                           sliver: SliverList(
@@ -222,15 +221,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                           ),
                         );
                       }
-                      if (taskState is TaskError) {
+                      if (taskState is TaskListError) {
                         return SliverFillRemaining(
                           child: ErrorView(
                             message: taskState.failure.message,
-                            onRetry: () => context.read<TaskBloc>().add(TasksLoadRequested(widget.projectId)),
+                            onRetry: () => sl<TaskListCubit>().loadTasks(widget.projectId),
                           ),
                         );
                       }
-                      if (taskState is TaskEmpty) {
+                      if (taskState is TaskListEmpty) {
                         return const SliverFillRemaining(
                           child: EmptyView(
                             icon: Icons.task_alt_rounded,
@@ -239,7 +238,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                           ),
                         );
                       }
-                      if (taskState is TaskSuccess) {
+                      if (taskState is TaskListSuccess) {
                         final tasks = taskState.tasks;
                         return SliverList(
                           delegate: SliverChildBuilderDelegate(
@@ -250,7 +249,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                                 onTap: () {
                                   context.push('/tasks/${task.id}').then((_) {
                                     if (context.mounted) {
-                                      context.read<TaskBloc>().add(TasksLoadRequested(widget.projectId));
+                                      sl<TaskListCubit>().loadTasks(widget.projectId);
                                       context.read<ProjectDetailCubit>().refresh(widget.projectId);
                                     }
                                   });

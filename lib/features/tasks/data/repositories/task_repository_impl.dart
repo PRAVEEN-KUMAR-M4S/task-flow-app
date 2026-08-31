@@ -13,10 +13,7 @@ class TaskRepositoryImpl implements TaskRepository {
   final TaskLocalDatasource datasource;
   final ConnectivityCubit connectivity;
 
-  TaskRepositoryImpl({
-    required this.datasource,
-    required this.connectivity,
-  });
+  TaskRepositoryImpl({required this.datasource, required this.connectivity});
 
   bool get _isOffline => connectivity.state.isOffline;
 
@@ -217,4 +214,18 @@ class TaskRepositoryImpl implements TaskRepository {
 
   NetworkFailure _offlineWrite(String action) =>
       NetworkFailure(message: 'You need to be online to $action.');
+
+  @override
+  Future<Either<Failure, TaskEntity>> toggleFavorite({
+    required String taskId,
+  }) async {
+    try {
+      if (_isOffline) {
+        return Left(_offlineWrite('toggle a task favorite'));
+      }
+      return Right(await datasource.toggleFavorite(taskId: taskId));
+    } catch (e) {
+      return Left(mapExceptionToFailure(e));
+    }
+  }
 }

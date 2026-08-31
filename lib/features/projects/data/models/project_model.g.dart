@@ -7,16 +7,16 @@ part of 'project_model.dart';
 // **************************************************************************
 
 ProjectModel _$ProjectModelFromJson(Map<String, dynamic> json) => ProjectModel(
-      id: json['id'] as String,
-      orgId: json['org_id'] as String,
-      name: json['name'] as String,
-      description: json['description'] as String? ?? '',
-      status: json['status'] as String,
-      taskCount: (json['task_count'] as num?)?.toInt() ?? 0,
-      createdAt: json['created_at'] as String,
-      createdBy: json['created_by'] as String?,
-      updatedAt: json['updated_at'] as String?,
-    );
+  id: json['id'] as String,
+  orgId: json['org_id'] as String,
+  name: json['name'] as String,
+  description: json['description'] as String? ?? '',
+  status: json['status'] as String,
+  taskCount: (json['task_count'] as num?)?.toInt() ?? 0,
+  createdAt: json['created_at'] as String,
+  createdBy: json['created_by'] as String?,
+  updatedAt: json['updated_at'] as String?,
+);
 
 Map<String, dynamic> _$ProjectModelToJson(ProjectModel instance) =>
     <String, dynamic>{

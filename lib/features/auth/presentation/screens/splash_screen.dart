@@ -70,9 +70,6 @@ class _SplashScreenState extends State<SplashScreen> {
       listener: (context, state) {
         if (state is SessionAuthenticated) {
           _promptBiometricAndNavigate();
-        } else if (state is SessionUnauthenticated ||
-            state is SessionTokenExpired) {
-          context.go(AppConstants.routeLogin);
         }
       },
       child: Scaffold(

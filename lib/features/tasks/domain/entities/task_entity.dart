@@ -26,6 +26,8 @@ class TaskEntity extends Equatable {
   final String? assigneeName;
   final String? assigneeAvatarUrl;
 
+  final bool isFavorite;
+
   const TaskEntity({
     required this.id,
     required this.projectId,
@@ -41,6 +43,7 @@ class TaskEntity extends Equatable {
     this.tags = const [],
     this.assigneeName,
     this.assigneeAvatarUrl,
+    this.isFavorite = false,
   });
 
   bool get isDone => status == 'done';
@@ -82,6 +85,7 @@ class TaskEntity extends Equatable {
     List<String>? tags,
     String? assigneeName,
     String? assigneeAvatarUrl,
+    bool? isFavorite,
   }) {
     return TaskEntity(
       id: id ?? this.id,
@@ -97,26 +101,29 @@ class TaskEntity extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       tags: tags ?? this.tags,
       assigneeName: clearAssignee ? null : (assigneeName ?? this.assigneeName),
-      assigneeAvatarUrl:
-          clearAssignee ? null : (assigneeAvatarUrl ?? this.assigneeAvatarUrl),
+      assigneeAvatarUrl: clearAssignee
+          ? null
+          : (assigneeAvatarUrl ?? this.assigneeAvatarUrl),
+      isFavorite: isFavorite ?? false,
     );
   }
 
   @override
   List<Object?> get props => [
-        id,
-        projectId,
-        title,
-        description,
-        status,
-        priority,
-        assigneeId,
-        createdBy,
-        dueDate,
-        createdAt,
-        updatedAt,
-        tags,
-        assigneeName,
-        assigneeAvatarUrl,
-      ];
+    id,
+    projectId,
+    title,
+    description,
+    status,
+    priority,
+    assigneeId,
+    createdBy,
+    dueDate,
+    createdAt,
+    updatedAt,
+    tags,
+    assigneeName,
+    assigneeAvatarUrl,
+    isFavorite,
+  ];
 }

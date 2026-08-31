@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:task_flow/core/di/injection_container.dart';
 import 'package:task_flow/features/auth/presentation/cubit/session_cubit.dart';
 import 'package:task_flow/features/tasks/domain/entities/task_entity.dart';
-import 'package:task_flow/features/tasks/presentation/bloc/task_bloc.dart';
 import 'package:task_flow/features/tasks/presentation/cubit/task_detail_cubit.dart';
 import 'package:task_flow/features/tasks/presentation/widgets/assignee_picker_bottom_sheet.dart';
 import 'package:task_flow/features/tasks/presentation/widgets/priority_badge.dart';
@@ -93,20 +92,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           ),
         ],
       ),
-      body: BlocConsumer<TaskBloc, TaskState>(
-        listener: (context, state) {
-          if (state is TaskError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.failure.message),
-                backgroundColor: theme.colorScheme.error,
-              ),
-            );
-            context.read<TaskDetailCubit>().refresh(widget.taskId);
-          }
-        },
-        builder: (context, taskState) {
-          return BlocBuilder<TaskDetailCubit, TaskDetailState>(
+      body: BlocBuilder<TaskDetailCubit, TaskDetailState>(
             builder: (context, state) {
               if (state is TaskDetailLoading) {
                 return const LoadingView();
@@ -168,11 +154,8 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                                     ],
                                     onChanged: (newStatus) {
                                       if (newStatus != null) {
-                                        context.read<TaskBloc>().add(TaskStatusUpdated(
-                                              taskId: task.id,
-                                              status: newStatus,
-                                            ));
-                                        context.read<TaskDetailCubit>().updateTaskLocally(
+                                        sl<TaskDetailCubit>().updateStatus(task.id, newStatus);
+                                        sl<TaskDetailCubit>().updateTaskLocally(
                                               task.copyWith(status: newStatus),
                                             );
                                       }
@@ -298,9 +281,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
               }
               return const SizedBox();
             },
-          );
-        },
-      ),
+          ),
     );
   }
 
@@ -385,18 +366,14 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     );
 
     if (context.mounted) {
-      context.read<TaskBloc>().add(TaskAssigned(
-            taskId: task.id,
-            assigneeId: selectedMember?.userId,
-            orgId: orgId,
-          ));
+      sl<TaskDetailCubit>().assignTask(task.id, selectedMember?.userId, orgId);
 
       final updatedTask = task.copyWith(
         assigneeId: selectedMember?.userId,
         assigneeName: selectedMember?.name,
         assigneeAvatarUrl: selectedMember?.avatarUrl,
       );
-      context.read<TaskDetailCubit>().updateTaskLocally(updatedTask);
+      sl<TaskDetailCubit>().updateTaskLocally(updatedTask);
     }
   }
 
@@ -410,8 +387,15 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     );
 
     if (confirmed == true && context.mounted) {
-      context.read<TaskBloc>().add(TaskDeleted(task.id));
-      context.pop();
+      final error = await sl<TaskDetailCubit>().deleteTask(task.id);
+      if (!context.mounted) return;
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: Theme.of(context).colorScheme.error),
+        );
+      } else {
+        context.pop();
+      }
     }
   }
 }

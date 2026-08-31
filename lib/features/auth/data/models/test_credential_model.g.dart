@@ -15,10 +15,10 @@ TestCredentialModel _$TestCredentialModelFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$TestCredentialModelToJson(
-        TestCredentialModel instance) =>
-    <String, dynamic>{
-      'email': instance.email,
-      'password': instance.password,
-      'org_id': instance.orgId,
-      'role': instance.role,
-    };
+  TestCredentialModel instance,
+) => <String, dynamic>{
+  'email': instance.email,
+  'password': instance.password,
+  'org_id': instance.orgId,
+  'role': instance.role,
+};

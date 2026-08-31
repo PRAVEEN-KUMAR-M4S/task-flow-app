@@ -115,7 +115,7 @@ class AuthLocalDatasourceImpl
     }
 
     // A real backend would mint a new pair; the mock reissues the canned one,
-    // and `toEntity()` stamps a fresh expiry relative to now.
+    // and `toEntity()` stamps a fres ehxpiry relative to now.
     return AuthResponseModel.fromJson(_db.mockLoginResponse);
   }
 

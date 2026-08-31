@@ -10,9 +10,8 @@ import 'package:task_flow/features/auth/presentation/screens/login_screen.dart';
 import 'package:task_flow/features/notifications/presentation/cubit/notification_cubit.dart';
 import 'package:task_flow/features/projects/presentation/cubit/project_form_cubit.dart';
 import 'package:task_flow/features/projects/presentation/cubit/project_list_cubit.dart';
-import 'package:task_flow/features/tasks/presentation/bloc/task_bloc.dart';
+import 'package:task_flow/features/tasks/presentation/cubit/task_list_cubit.dart';
 import 'package:task_flow/features/tasks/presentation/cubit/task_detail_cubit.dart';
-import 'package:task_flow/features/tasks/presentation/cubit/task_form_cubit.dart';
 import 'package:task_flow/features/users/presentation/cubit/org_members_cubit.dart';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
@@ -25,11 +24,8 @@ class MockConnectivityCubit extends Mock implements ConnectivityCubit {}
 
 class MockProjectListCubit extends Mock implements ProjectListCubit {}
 
-class MockProjectFormCubit extends Mock implements ProjectFormCubit {}
-
-class MockTaskBloc extends Mock implements TaskBloc {}
-
-class MockTaskFormCubit extends Mock implements TaskFormCubit {}
+class MockProjectFormCubit extends Mock implements ProjectFormCubit {}class MockTaskListCubit extends Mock implements TaskListCubit {}
+class MockTaskDetailCubit extends Mock implements TaskDetailCubit {}
 
 class MockTaskDetailCubit extends Mock implements TaskDetailCubit {}
 
@@ -82,8 +78,8 @@ void main() {
           BlocProvider<ConnectivityCubit>.value(value: MockConnectivityCubit()),
           BlocProvider<ProjectListCubit>.value(value: MockProjectListCubit()),
           BlocProvider<ProjectFormCubit>.value(value: MockProjectFormCubit()),
-          BlocProvider<TaskBloc>.value(value: MockTaskBloc()),
-          BlocProvider<TaskFormCubit>.value(value: MockTaskFormCubit()),
+          BlocProvider<TaskListCubit>.value(value: MockTaskListCubit()),
+          BlocProvider<TaskDetailCubit>.value(value: MockTaskDetailCubit()),
           BlocProvider<TaskDetailCubit>.value(value: MockTaskDetailCubit()),
           BlocProvider<OrgMembersCubit>.value(value: MockOrgMembersCubit()),
           BlocProvider<NotificationCubit>.value(value: MockNotificationCubit()),

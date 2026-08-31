@@ -11,7 +11,7 @@ AuthResponseModel _$AuthResponseModelFromJson(Map<String, dynamic> json) =>
       accessToken: json['access_token'] as String,
       refreshToken: json['refresh_token'] as String,
       accessTokenExpiresInSeconds:
-          (json['access_token_expires_in_seconds'] as num?)?.toInt() ?? 900,
+          (json['access_token_expires_in_seconds'] as num?)?.toInt() ?? 5,
       refreshTokenExpiresInSeconds:
           (json['refresh_token_expires_in_seconds'] as num?)?.toInt() ?? 0,
     );

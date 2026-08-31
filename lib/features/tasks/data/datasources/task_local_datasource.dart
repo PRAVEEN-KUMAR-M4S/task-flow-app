@@ -56,6 +56,8 @@ abstract class TaskLocalDatasource {
     required String priority,
   });
 
+  Future<TaskEntity> toggleFavorite({required String taskId});
+
   Future<List<TaskComment>> getComments(String taskId);
 
   /// Last-known-good tasks for [projectId], or `null` if nothing is cached.
@@ -109,7 +111,6 @@ class TaskLocalDatasourceImpl
             ..remove('_assignee_name')
             ..remove('_assignee_avatar_url');
           _db.tasks[id] = clean;
-       
         }
       }
     } catch (_) {
@@ -434,5 +435,17 @@ class TaskLocalDatasourceImpl
           (user?['avatar_url'] as String?) ??
           raw['_assignee_avatar_url'] as String?,
     );
+  }
+
+  @override
+  Future<TaskEntity> toggleFavorite({required String taskId}) async {
+    await _db.ensureLoaded();
+    await simulatedDelay();
+
+    final existing = _require(taskId);
+
+    final isFavorite = existing['is_favorite'] as bool? ?? false;
+
+    return _commit(taskId, {...existing, 'is_favorite': !isFavorite});
   }
 }

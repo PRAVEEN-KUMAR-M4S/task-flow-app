@@ -33,7 +33,8 @@ class TaskModel {
   final String? updatedAt;
   @JsonKey(defaultValue: <String>[])
   final List<String> tags;
-
+  @JsonKey(name: 'is_favorite', defaultValue: false)
+  final bool isFavorite;
   const TaskModel({
     required this.id,
     required this.projectId,
@@ -47,6 +48,7 @@ class TaskModel {
     required this.createdAt,
     this.updatedAt,
     this.tags = const [],
+    this.isFavorite = false,
   });
 
   factory TaskModel.fromJson(Map<String, dynamic> json) =>
@@ -76,6 +78,7 @@ class TaskModel {
       tags: tags,
       assigneeName: assigneeName,
       assigneeAvatarUrl: assigneeAvatarUrl,
+      isFavorite: isFavorite,
     );
   }
 
@@ -93,6 +96,7 @@ class TaskModel {
       createdAt: entity.createdAt.toIso8601String(),
       updatedAt: entity.updatedAt?.toIso8601String(),
       tags: entity.tags,
+      isFavorite: entity.isFavorite,
     );
   }
 }

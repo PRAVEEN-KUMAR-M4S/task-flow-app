@@ -11,9 +11,8 @@ import 'package:task_flow/features/home/presentation/screens/home_screen.dart';
 import 'package:task_flow/features/notifications/presentation/cubit/notification_cubit.dart';
 import 'package:task_flow/features/projects/presentation/cubit/project_form_cubit.dart';
 import 'package:task_flow/features/projects/presentation/cubit/project_list_cubit.dart';
-import 'package:task_flow/features/tasks/presentation/bloc/task_bloc.dart';
+import 'package:task_flow/features/tasks/presentation/cubit/task_list_cubit.dart';
 import 'package:task_flow/features/tasks/presentation/cubit/task_detail_cubit.dart';
-import 'package:task_flow/features/tasks/presentation/cubit/task_form_cubit.dart';
 import 'package:task_flow/features/users/presentation/cubit/org_members_cubit.dart';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
@@ -22,12 +21,11 @@ class MockSessionCubit extends Mock implements SessionCubit {}
 class MockThemeCubit extends Mock implements ThemeCubit {}
 class MockConnectivityCubit extends Mock implements ConnectivityCubit {}
 class MockProjectFormCubit extends Mock implements ProjectFormCubit {}
-class MockTaskFormCubit extends Mock implements TaskFormCubit {}
+class MockTaskListCubit extends Mock implements TaskListCubit {}
 class MockTaskDetailCubit extends Mock implements TaskDetailCubit {}
 class MockOrgMembersCubit extends Mock implements OrgMembersCubit {}
 class MockNotificationCubit extends Mock implements NotificationCubit {}
 class MockLoginCubit extends Mock implements LoginCubit {}
-class MockTaskBloc extends Mock implements TaskBloc {}
 
 class FakeProjectListCubit extends Cubit<ProjectListState>
     implements ProjectListCubit {
@@ -66,19 +64,17 @@ class FakeProjectListCubit extends Cubit<ProjectListState>
 
 void main() {
   late MockSessionCubit mockSession;
-  late MockTaskBloc mockTaskBloc;
   late MockNotificationCubit mockNotification;
   late MockProjectFormCubit mockProjectForm;
-  late MockTaskFormCubit mockTaskForm;
+  late MockTaskListCubit mockTaskList;
   late MockTaskDetailCubit mockTaskDetail;
   late MockOrgMembersCubit mockOrgMembers;
 
   setUp(() {
     mockSession = MockSessionCubit();
-    mockTaskBloc = MockTaskBloc();
     mockNotification = MockNotificationCubit();
     mockProjectForm = MockProjectFormCubit();
-    mockTaskForm = MockTaskFormCubit();
+    mockTaskList = MockTaskListCubit();
     mockTaskDetail = MockTaskDetailCubit();
     mockOrgMembers = MockOrgMembersCubit();
 
@@ -107,16 +103,15 @@ void main() {
       ),
     );
     when(() => mockSession.stream).thenAnswer((_) => const Stream.empty());
-    when(() => mockTaskBloc.state).thenReturn(const TaskInitial());
-    when(() => mockTaskBloc.stream).thenAnswer((_) => const Stream.empty());
+    when(() => mockTaskList.state).thenReturn(const TaskListInitial());
+    when(() => mockTaskList.stream).thenAnswer((_) => const Stream.empty());
+    when(() => mockTaskDetail.state).thenReturn(const TaskDetailInitial());
+    when(() => mockTaskDetail.stream).thenAnswer((_) => const Stream.empty());
     when(() => mockNotification.state).thenReturn(const NotificationInitial());
     when(() => mockNotification.stream).thenAnswer((_) => const Stream.empty());
     when(() => mockProjectForm.state).thenReturn(const ProjectFormInitial());
     when(() => mockProjectForm.stream).thenAnswer((_) => const Stream.empty());
-    when(() => mockTaskForm.state).thenReturn(const TaskFormInitial());
-    when(() => mockTaskForm.stream).thenAnswer((_) => const Stream.empty());
-    when(() => mockTaskDetail.state).thenReturn(const TaskDetailInitial());
-    when(() => mockTaskDetail.stream).thenAnswer((_) => const Stream.empty());
+
     when(() => mockOrgMembers.state).thenReturn(const OrgMembersInitial());
     when(() => mockOrgMembers.stream).thenAnswer((_) => const Stream.empty());
     when(() => mockNotification.unreadCount).thenReturn(0);
@@ -134,8 +129,7 @@ void main() {
           BlocProvider<ConnectivityCubit>.value(value: MockConnectivityCubit()),
           BlocProvider<ProjectListCubit>.value(value: FakeProjectListCubit()),
           BlocProvider<ProjectFormCubit>.value(value: mockProjectForm),
-          BlocProvider<TaskBloc>.value(value: mockTaskBloc),
-          BlocProvider<TaskFormCubit>.value(value: mockTaskForm),
+          BlocProvider<TaskListCubit>.value(value: mockTaskList),
           BlocProvider<TaskDetailCubit>.value(value: mockTaskDetail),
           BlocProvider<OrgMembersCubit>.value(value: mockOrgMembers),
           BlocProvider<NotificationCubit>.value(value: mockNotification),
