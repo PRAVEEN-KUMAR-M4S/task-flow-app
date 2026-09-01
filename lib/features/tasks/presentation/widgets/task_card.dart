@@ -8,17 +8,20 @@ import 'package:task_flow/shared/widgets/app_avatar.dart';
 class TaskCard extends StatelessWidget {
   final TaskEntity task;
   final VoidCallback onTap;
+  final VoidCallback onFavorite;
 
   const TaskCard({
     super.key,
     required this.task,
     required this.onTap,
+    required this.onFavorite,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isOverdue = task.dueDate != null &&
+    final isOverdue =
+        task.dueDate != null &&
         task.dueDate!.isBefore(DateTime.now()) &&
         task.status != 'done';
 
@@ -46,6 +49,15 @@ class TaskCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: onFavorite,
+                    child: Icon(
+                      task.isFavorite ? Icons.star : Icons.star_border,
+                      color: task.isFavorite ? Colors.amber : Colors.grey,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
                   PriorityBadge(priority: task.priority),
                 ],
               ),
@@ -76,7 +88,9 @@ class TaskCard extends StatelessWidget {
                               size: 14,
                               color: isOverdue
                                   ? theme.colorScheme.error
-                                  : theme.colorScheme.onSurface.withOpacity(0.4),
+                                  : theme.colorScheme.onSurface.withOpacity(
+                                      0.4,
+                                    ),
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -84,7 +98,9 @@ class TaskCard extends StatelessWidget {
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: isOverdue
                                     ? theme.colorScheme.error
-                                    : theme.colorScheme.onSurface.withOpacity(0.5),
+                                    : theme.colorScheme.onSurface.withOpacity(
+                                        0.5,
+                                      ),
                                 fontWeight: isOverdue ? FontWeight.bold : null,
                               ),
                             ),

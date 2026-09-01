@@ -41,6 +41,7 @@ import 'package:task_flow/features/tasks/domain/usecases/delete_task_usecase.dar
 import 'package:task_flow/features/tasks/domain/usecases/get_comments_usecase.dart';
 import 'package:task_flow/features/tasks/domain/usecases/get_task_detail_usecase.dart';
 import 'package:task_flow/features/tasks/domain/usecases/get_tasks_usecase.dart';
+import 'package:task_flow/features/tasks/domain/usecases/toggle_favorite_usecases.dart';
 import 'package:task_flow/features/tasks/domain/usecases/update_task_status_usecase.dart';
 import 'package:task_flow/features/tasks/domain/usecases/update_task_usecase.dart';
 import 'package:task_flow/features/tasks/presentation/cubit/task_list_cubit.dart';
@@ -160,6 +161,7 @@ Future<void> init() async {
     () => AssignTaskUseCase(taskRepository: sl(), userRepository: sl()),
   );
   sl.registerLazySingleton(() => UpdateTaskStatusUseCase(sl()));
+  sl.registerLazySingleton(() => ToggleFavoriteUsecases(taskRepository: sl()));
 
   // Users Use Cases
   sl.registerLazySingleton(() => GetOrgMembersUseCase(sl()));
@@ -212,6 +214,7 @@ Future<void> init() async {
       assignTaskUseCase: sl(),
       updateTaskStatusUseCase: sl(),
       deleteTaskUseCase: sl(),
+      favoriteUsecases: sl(),
     ),
   );
 

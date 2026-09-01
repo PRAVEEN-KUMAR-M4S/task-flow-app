@@ -73,14 +73,21 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   return PopupMenuButton<String>(
                     onSelected: (value) {
                       if (value == 'edit') {
-                        context.push(
-                          '/projects/form',
-                          extra: {'project': state.project, 'isAdmin': isAdmin},
-                        ).then((_) {
-                          if (context.mounted) {
-                            context.read<ProjectDetailCubit>().refresh(widget.projectId);
-                          }
-                        });
+                        context
+                            .push(
+                              '/projects/form',
+                              extra: {
+                                'project': state.project,
+                                'isAdmin': isAdmin,
+                              },
+                            )
+                            .then((_) {
+                              if (context.mounted) {
+                                context.read<ProjectDetailCubit>().refresh(
+                                  widget.projectId,
+                                );
+                              }
+                            });
                       } else if (value == 'delete') {
                         _confirmDelete(context, state.project, isAdmin);
                       }
@@ -100,9 +107,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete_outline_rounded, color: Colors.red, size: 20),
+                            Icon(
+                              Icons.delete_outline_rounded,
+                              color: Colors.red,
+                              size: 20,
+                            ),
                             SizedBox(width: 8),
-                            Text('Delete Project', style: TextStyle(color: Colors.red)),
+                            Text(
+                              'Delete Project',
+                              style: TextStyle(color: Colors.red),
+                            ),
                           ],
                         ),
                       ),
@@ -122,7 +136,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           if (projectState is ProjectDetailError) {
             return ErrorView(
               message: projectState.failure.message,
-              onRetry: () => context.read<ProjectDetailCubit>().loadProject(widget.projectId),
+              onRetry: () => context.read<ProjectDetailCubit>().loadProject(
+                widget.projectId,
+              ),
             );
           }
           if (projectState is ProjectDetailSuccess) {
@@ -145,14 +161,18 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                             Text(
                               project.description,
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                  0.7,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 16),
                           ],
                           Text(
                             'Task Summary',
-                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           TaskSummaryRow(project: project),
@@ -162,24 +182,35 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                             children: [
                               Text(
                                 'Tasks',
-                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               FilledButton.icon(
                                 onPressed: () {
-                                  context.push(
-                                    '/tasks/form',
-                                    extra: {'projectId': widget.projectId},
-                                  ).then((_) {
-                                    if (context.mounted) {
-                                      sl<TaskListCubit>().loadTasks(widget.projectId);
-                                      context.read<ProjectDetailCubit>().refresh(widget.projectId);
-                                    }
-                                  });
+                                  context
+                                      .push(
+                                        '/tasks/form',
+                                        extra: {'projectId': widget.projectId},
+                                      )
+                                      .then((_) {
+                                        if (context.mounted) {
+                                          sl<TaskListCubit>().loadTasks(
+                                            widget.projectId,
+                                          );
+                                          context
+                                              .read<ProjectDetailCubit>()
+                                              .refresh(widget.projectId);
+                                        }
+                                      });
                                 },
                                 icon: const Icon(Icons.add_rounded, size: 18),
                                 label: const Text('Add Task'),
                                 style: FilledButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
                                   minimumSize: Size.zero,
                                 ),
                               ),
@@ -194,23 +225,25 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   SliverToBoxAdapter(
                     child: TaskFilterBar(
                       members: _members,
-                      onFilterChanged: ({
-                        String? status,
-                        String? priority,
-                        String? assigneeId,
-                        DateTime? dueFrom,
-                        DateTime? dueTo,
-                      }) {
-                        final cubit = sl<TaskListCubit>();
-                        cubit.filterByStatus(status);
-                        cubit.filterByPriority(priority);
-                        cubit.filterByAssignee(assigneeId);
-                      },
+                      onFilterChanged:
+                          ({
+                            String? status,
+                            String? priority,
+                            String? assigneeId,
+                            DateTime? dueFrom,
+                            DateTime? dueTo,
+                          }) {
+                            final cubit = sl<TaskListCubit>();
+                            cubit.filterByStatus(status);
+                            cubit.filterByPriority(priority);
+                            cubit.filterByAssignee(assigneeId);
+                          },
                     ),
                   ),
                   BlocBuilder<TaskListCubit, TaskListState>(
                     builder: (context, taskState) {
-                      if (taskState is TaskListInitial || taskState is TaskListLoading) {
+                      if (taskState is TaskListInitial ||
+                          taskState is TaskListLoading) {
                         return SliverPadding(
                           padding: const EdgeInsets.only(top: 8),
                           sliver: SliverList(
@@ -225,7 +258,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         return SliverFillRemaining(
                           child: ErrorView(
                             message: taskState.failure.message,
-                            onRetry: () => sl<TaskListCubit>().loadTasks(widget.projectId),
+                            onRetry: () =>
+                                sl<TaskListCubit>().loadTasks(widget.projectId),
                           ),
                         );
                       }
@@ -234,30 +268,40 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                           child: EmptyView(
                             icon: Icons.task_alt_rounded,
                             title: 'No tasks yet',
-                            subtitle: 'Get started by creating a new task for this project.',
+                            subtitle:
+                                'Get started by creating a new task for this project.',
                           ),
                         );
                       }
                       if (taskState is TaskListSuccess) {
                         final tasks = taskState.tasks;
                         return SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final task = tasks[index];
-                              return TaskCard(
-                                task: task,
-                                onTap: () {
-                                  context.push('/tasks/${task.id}').then((_) {
-                                    if (context.mounted) {
-                                      sl<TaskListCubit>().loadTasks(widget.projectId);
-                                      context.read<ProjectDetailCubit>().refresh(widget.projectId);
-                                    }
-                                  });
-                                },
-                              );
-                            },
-                            childCount: tasks.length,
-                          ),
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final task = tasks[index];
+                            return TaskCard(
+                              task: task,
+                              onTap: () {
+                                context.push('/tasks/${task.id}').then((_) {
+                                  if (context.mounted) {
+                                    sl<TaskListCubit>().loadTasks(
+                                      widget.projectId,
+                                    );
+                                    context.read<ProjectDetailCubit>().refresh(
+                                      widget.projectId,
+                                    );
+                                  }
+                                });
+                              },
+                              onFavorite: () async {
+                                context.read<TaskListCubit>().toggleFavorite(
+                                  task.id,
+                                );
+                              },
+                            );
+                          }, childCount: tasks.length),
                         );
                       }
                       return const SliverToBoxAdapter(child: SizedBox());
@@ -274,11 +318,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, Project project, bool isAdmin) async {
+  Future<void> _confirmDelete(
+    BuildContext context,
+    Project project,
+    bool isAdmin,
+  ) async {
     final confirmed = await showConfirmDialog(
       context,
       title: 'Delete Project',
-      message: 'Are you sure you want to delete "${project.name}" and all its tasks? This action cannot be undone.',
+      message:
+          'Are you sure you want to delete "${project.name}" and all its tasks? This action cannot be undone.',
       confirmLabel: 'Delete',
       isDestructive: true,
     );
@@ -315,12 +364,21 @@ class _ProjectDetailSkeleton extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Description skeleton
-          SkeletonBox(height: 14, width: MediaQuery.of(context).size.width * 0.85),
+          SkeletonBox(
+            height: 14,
+            width: MediaQuery.of(context).size.width * 0.85,
+          ),
           const SizedBox(height: 8),
-          SkeletonBox(height: 14, width: MediaQuery.of(context).size.width * 0.6),
+          SkeletonBox(
+            height: 14,
+            width: MediaQuery.of(context).size.width * 0.6,
+          ),
           const SizedBox(height: 24),
           // Task Summary skeleton
-          SkeletonBox(height: 18, width: MediaQuery.of(context).size.width * 0.35),
+          SkeletonBox(
+            height: 18,
+            width: MediaQuery.of(context).size.width * 0.35,
+          ),
           const SizedBox(height: 12),
           Row(
             children: List.generate(
@@ -338,16 +396,25 @@ class _ProjectDetailSkeleton extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              SkeletonBox(height: 18, width: MediaQuery.of(context).size.width * 0.25),
-              SkeletonBox(height: 32, width: MediaQuery.of(context).size.width * 0.2),
+              SkeletonBox(
+                height: 18,
+                width: MediaQuery.of(context).size.width * 0.25,
+              ),
+              SkeletonBox(
+                height: 32,
+                width: MediaQuery.of(context).size.width * 0.2,
+              ),
             ],
           ),
           const SizedBox(height: 12),
           // Task list skeleton
-          ...List.generate(5, (_) => const Padding(
-            padding: EdgeInsets.only(bottom: 8),
-            child: SkeletonTaskCard(),
-          )),
+          ...List.generate(
+            5,
+            (_) => const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: SkeletonTaskCard(),
+            ),
+          ),
         ],
       ),
     );

@@ -48,17 +48,21 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 return PopupMenuButton<String>(
                   onSelected: (value) {
                     if (value == 'edit') {
-                      context.push(
-                        '/tasks/form',
-                        extra: {
-                          'projectId': state.task.projectId,
-                          'task': state.task,
-                        },
-                      ).then((_) {
-                        if (context.mounted) {
-                          context.read<TaskDetailCubit>().refresh(widget.taskId);
-                        }
-                      });
+                      context
+                          .push(
+                            '/tasks/form',
+                            extra: {
+                              'projectId': state.task.projectId,
+                              'task': state.task,
+                            },
+                          )
+                          .then((_) {
+                            if (context.mounted) {
+                              context.read<TaskDetailCubit>().refresh(
+                                widget.taskId,
+                              );
+                            }
+                          });
                     } else if (value == 'delete') {
                       _confirmDelete(context, state.task);
                     }
@@ -78,9 +82,16 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline_rounded, color: Colors.red, size: 20),
+                          Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.red,
+                            size: 20,
+                          ),
                           SizedBox(width: 8),
-                          Text('Delete Task', style: TextStyle(color: Colors.red)),
+                          Text(
+                            'Delete Task',
+                            style: TextStyle(color: Colors.red),
+                          ),
                         ],
                       ),
                     ),
@@ -93,34 +104,40 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
         ],
       ),
       body: BlocBuilder<TaskDetailCubit, TaskDetailState>(
-            builder: (context, state) {
-              if (state is TaskDetailLoading) {
-                return const LoadingView();
-              }
-              if (state is TaskDetailError) {
-                return ErrorView(
-                  message: state.failure.message,
-                  onRetry: () => context.read<TaskDetailCubit>().loadTask(widget.taskId),
-                );
-              }
-              if (state is TaskDetailSuccess) {
-                final task = state.task;
+        builder: (context, state) {
+          if (state is TaskDetailLoading) {
+            return const LoadingView();
+          }
+          if (state is TaskDetailError) {
+            return ErrorView(
+              message: state.failure.message,
+              onRetry: () =>
+                  context.read<TaskDetailCubit>().loadTask(widget.taskId),
+            );
+          }
+          if (state is TaskDetailSuccess) {
+            final task = state.task;
 
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    context.read<TaskDetailCubit>().refresh(widget.taskId);
-                  },
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            return RefreshIndicator(
+              onRefresh: () async {
+                context.read<TaskDetailCubit>().refresh(widget.taskId);
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      task.title,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          task.title,
-                          style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 12),
                         Row(
                           children: [
                             StatusChip(status: task.status),
@@ -128,160 +145,227 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                             PriorityBadge(priority: task.priority),
                           ],
                         ),
-                        const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'STATUS',
-                                    style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                        IconButton(
+                          onPressed: () async {
+                            context.read<TaskDetailCubit>().toggleFavorite(
+                              task.id,
+                            );
+                          },
+                          icon: Icon(
+                            task.isFavorite ? Icons.star : Icons.star_border,
+                            color: task.isFavorite ? Colors.amber : Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'STATUS',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              DropdownButtonFormField<String>(
+                                initialValue: task.status,
+                                isExpanded: true,
+                                decoration: const InputDecoration(
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
                                   ),
-                                  const SizedBox(height: 4),
-                                  DropdownButtonFormField<String>(
-                                    initialValue: task.status,
-                                    isExpanded: true,
-                                    decoration: const InputDecoration(
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    ),
-                                    items: const [
-                                      DropdownMenuItem(value: 'todo', child: Text('Todo')),
-                                      DropdownMenuItem(value: 'in_progress', child: Text('In Progress')),
-                                      DropdownMenuItem(value: 'review', child: Text('Review')),
-                                      DropdownMenuItem(value: 'done', child: Text('Done')),
-                                    ],
-                                    onChanged: (newStatus) {
-                                      if (newStatus != null) {
-                                        sl<TaskDetailCubit>().updateStatus(task.id, newStatus);
-                                        sl<TaskDetailCubit>().updateTaskLocally(
-                                              task.copyWith(status: newStatus),
-                                            );
-                                      }
-                                    },
+                                ),
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: 'todo',
+                                    child: Text('Todo'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'in_progress',
+                                    child: Text('In Progress'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'review',
+                                    child: Text('Review'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'done',
+                                    child: Text('Done'),
                                   ),
                                 ],
+                                onChanged: (newStatus) {
+                                  if (newStatus != null) {
+                                    sl<TaskDetailCubit>().updateStatus(
+                                      task.id,
+                                      newStatus,
+                                    );
+                                    sl<TaskDetailCubit>().updateTaskLocally(
+                                      task.copyWith(status: newStatus),
+                                    );
+                                  }
+                                },
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'ASSIGNEE',
-                                    style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'ASSIGNEE',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              InkWell(
+                                onTap: () => _pickAssignee(
+                                  context,
+                                  task,
+                                  user?.orgId ?? '',
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
                                   ),
-                                  const SizedBox(height: 4),
-                                  InkWell(
-                                    onTap: () => _pickAssignee(context, task, user?.orgId ?? ''),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: theme.colorScheme.outline
+                                          .withOpacity(0.3),
+                                    ),
                                     borderRadius: BorderRadius.circular(10),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                      decoration: BoxDecoration(
-                                        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          AppAvatar(
-                                            imageUrl: task.assigneeAvatarUrl,
-                                            name: task.assigneeName ?? '?',
-                                            radius: 12,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              task.assigneeName ?? 'Unassigned',
-                                              style: theme.textTheme.bodyMedium,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                          const Icon(Icons.arrow_drop_down),
-                                        ],
-                                      ),
-                                    ),
                                   ),
-                                ],
+                                  child: Row(
+                                    children: [
+                                      AppAvatar(
+                                        imageUrl: task.assigneeAvatarUrl,
+                                        name: task.assigneeName ?? '?',
+                                        radius: 12,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          task.assigneeName ?? 'Unassigned',
+                                          style: theme.textTheme.bodyMedium,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const Icon(Icons.arrow_drop_down),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          'DESCRIPTION',
-                          style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            task.description.isEmpty ? 'No description provided.' : task.description,
-                            style: theme.textTheme.bodyMedium,
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            if (task.dueDate != null)
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'DESCRIPTION',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceVariant.withOpacity(
+                          0.3,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        task.description.isEmpty
+                            ? 'No description provided.'
+                            : task.description,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        if (task.dueDate != null)
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'DUE DATE',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
                                   children: [
-                                    Text(
-                                      'DUE DATE',
-                                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                                    const Icon(
+                                      Icons.calendar_today_rounded,
+                                      size: 16,
+                                      color: Colors.grey,
                                     ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.calendar_today_rounded, size: 16, color: Colors.grey),
-                                        const SizedBox(width: 8),
-                                        Text(DateFormat('MMM dd, yyyy').format(task.dueDate!)),
-                                      ],
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      DateFormat(
+                                        'MMM dd, yyyy',
+                                      ).format(task.dueDate!),
                                     ),
                                   ],
                                 ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        if (task.tags.isNotEmpty) ...[
-                          Text(
-                            'TAGS',
-                            style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            children: task.tags.map((t) => Chip(label: Text(t))).toList(),
-                          ),
-                          const SizedBox(height: 24),
-                        ],
-                        const Divider(),
-                        const SizedBox(height: 16),
-                        Text(
-                          'COMMENTS',
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildCommentsSection(context, state, theme),
-                        const SizedBox(height: 32),
                       ],
                     ),
-                  ),
-                );
-              }
-              return const SizedBox();
-            },
-          ),
+                    const SizedBox(height: 16),
+                    if (task.tags.isNotEmpty) ...[
+                      Text(
+                        'TAGS',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: task.tags
+                            .map((t) => Chip(label: Text(t)))
+                            .toList(),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                    const Divider(),
+                    const SizedBox(height: 16),
+                    Text(
+                      'COMMENTS',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCommentsSection(context, state, theme),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            );
+          }
+          return const SizedBox();
+        },
+      ),
     );
   }
 
@@ -331,11 +415,15 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                     children: [
                       Text(
                         comment.authorName,
-                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       Text(
                         DateFormat('MMM d, h:mm a').format(comment.createdAt),
-                        style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
                   ),
@@ -350,7 +438,11 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     );
   }
 
-  Future<void> _pickAssignee(BuildContext context, TaskEntity task, String orgId) async {
+  Future<void> _pickAssignee(
+    BuildContext context,
+    TaskEntity task,
+    String orgId,
+  ) async {
     final OrgMember? selectedMember = await showModalBottomSheet<OrgMember?>(
       context: context,
       isScrollControlled: true,
@@ -381,7 +473,8 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     final confirmed = await showConfirmDialog(
       context,
       title: 'Delete Task',
-      message: 'Are you sure you want to delete this task? This action cannot be undone.',
+      message:
+          'Are you sure you want to delete this task? This action cannot be undone.',
       confirmLabel: 'Delete',
       isDestructive: true,
     );
@@ -391,7 +484,10 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       if (!context.mounted) return;
       if (error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error), backgroundColor: Theme.of(context).colorScheme.error),
+          SnackBar(
+            content: Text(error),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       } else {
         context.pop();
