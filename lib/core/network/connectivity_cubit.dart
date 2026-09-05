@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 
@@ -25,24 +28,66 @@ class ConnectivityState extends Equatable {
 
 // ─── Cubit ────────────────────────────────────────────────────────────────────
 
-/// Simulated connectivity cubit.
+/// Manages connectivity state by listening to the real [Connectivity] stream.
 ///
-/// Since there is no real network in this assignment, connectivity is toggled
-/// manually via the Settings screen debug menu.
-/// Real connectivity_plus detection is omitted per the spec — it would only
-/// feed this same toggle in production.
+/// A manual override (via the Settings debug toggle) can force the app into
+/// online or offline mode regardless of actual network conditions. Once the
+/// override is cleared the cubit resumes following the real connectivity
+/// stream.
 class ConnectivityCubit extends Cubit<ConnectivityState> {
-  ConnectivityCubit() : super(const ConnectivityState.online());
+  final Connectivity _connectivity;
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
+  bool _manualOverride = false;
 
-  /// Toggle between online and offline for demo purposes.
-  void toggle() {
-    if (state.isOnline) {
-      emit(const ConnectivityState.offline());
-    } else {
-      emit(const ConnectivityState.online());
-    }
+  ConnectivityCubit({Connectivity? connectivity})
+      : _connectivity = connectivity ?? Connectivity(),
+        super(const ConnectivityState.online()) {
+    _listenToConnectivity();
   }
 
-  void setOnline() => emit(const ConnectivityState.online());
-  void setOffline() => emit(const ConnectivityState.offline());
+  /// Subscribe to the platform connectivity stream and update state.
+  void _listenToConnectivity() {
+    _subscription = _connectivity.onConnectivityChanged.listen((results) {
+      if (_manualOverride) return; // debug toggle is active — ignore real changes
+      final connected = results.any((r) => r != ConnectivityResult.none);
+      emit(connected
+          ? const ConnectivityState.online()
+          : const ConnectivityState.offline());
+    });
+  }
+
+  // ── Manual override (Settings debug toggle) ────────────────────────────────
+
+  /// Force offline regardless of real connectivity.
+  void setOffline() {
+    _manualOverride = true;
+    emit(const ConnectivityState.offline());
+  }
+
+  /// Force online regardless of real connectivity.
+  void setOnline() {
+    _manualOverride = true;
+    emit(const ConnectivityState.online());
+  }
+
+  /// Clear any manual override and resume following real connectivity.
+  void clearOverride() {
+    _manualOverride = false;
+    // Immediately re-check real connectivity.
+    _connectivity.checkConnectivity().then((results) {
+      if (isClosed || _manualOverride) return;
+      final connected = results.any((r) => r != ConnectivityResult.none);
+      emit(connected
+          ? const ConnectivityState.online()
+          : const ConnectivityState.offline());
+    });
+  }
+
+  bool get isManualOverride => _manualOverride;
+
+  @override
+  Future<void> close() {
+    _subscription?.cancel();
+    return super.close();
+  }
 }

@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:task_flow/core/error/failure_mapper.dart';
 import 'package:task_flow/core/error/failures.dart';
-import 'package:task_flow/core/network/connectivity_cubit.dart';
+import 'package:task_flow/core/network/network_info.dart';
 import 'package:task_flow/core/utils/cached.dart';
 import 'package:task_flow/features/notifications/data/datasources/notification_local_datasource.dart';
 import 'package:task_flow/features/notifications/domain/entities/notification_entity.dart';
@@ -9,20 +9,20 @@ import 'package:task_flow/features/notifications/domain/repositories/notificatio
 
 class NotificationRepositoryImpl implements NotificationRepository {
   final NotificationLocalDatasource datasource;
-  final ConnectivityCubit connectivity;
+  final NetworkInfo _networkInfo;
 
   NotificationRepositoryImpl({
     required this.datasource,
-    required this.connectivity,
-  });
+    required NetworkInfo networkInfo,
+  }) : _networkInfo = networkInfo;
 
-  bool get _isOffline => connectivity.state.isOffline;
+  Future<bool> get _isOffline async => !await _networkInfo.isConnected;
 
   @override
   Future<Either<Failure, Cached<List<NotificationEntity>>>> getNotifications(
     String userId,
   ) async {
-    if (_isOffline) {
+    if (await _isOffline) {
       final cached = datasource.getCachedNotifications(userId);
       if (cached != null) return Right(Cached.stale(cached));
       return const Left(
@@ -44,7 +44,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
   Future<Either<Failure, NotificationEntity>> markAsRead(
     String notificationId,
   ) async {
-    if (_isOffline) return Left(_offlineWrite());
+    if (await _isOffline) return Left(_offlineWrite());
     try {
       return Right(await datasource.markAsRead(notificationId));
     } catch (error) {
@@ -54,7 +54,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
   @override
   Future<Either<Failure, Unit>> markAllAsRead(String userId) async {
-    if (_isOffline) return Left(_offlineWrite());
+    if (await _isOffline) return Left(_offlineWrite());
     try {
       await datasource.markAllAsRead(userId);
       return const Right(unit);

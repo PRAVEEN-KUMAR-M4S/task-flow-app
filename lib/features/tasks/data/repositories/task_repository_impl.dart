@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:task_flow/core/error/failure_mapper.dart';
 import 'package:task_flow/core/error/failures.dart';
-import 'package:task_flow/core/network/connectivity_cubit.dart';
+import 'package:task_flow/core/network/network_info.dart';
 import 'package:task_flow/core/utils/cached.dart';
 import 'package:task_flow/features/tasks/data/datasources/task_local_datasource.dart';
 import 'package:task_flow/features/tasks/domain/entities/task_comment.dart';
@@ -11,11 +11,12 @@ import 'package:task_flow/features/tasks/domain/repositories/task_repository.dar
 
 class TaskRepositoryImpl implements TaskRepository {
   final TaskLocalDatasource datasource;
-  final ConnectivityCubit connectivity;
+  final NetworkInfo _networkInfo;
 
-  TaskRepositoryImpl({required this.datasource, required this.connectivity});
+  TaskRepositoryImpl({required this.datasource, required NetworkInfo networkInfo})
+      : _networkInfo = networkInfo;
 
-  bool get _isOffline => connectivity.state.isOffline;
+  Future<bool> get _isOffline async => !await _networkInfo.isConnected;
 
   // ─── Reads ──────────────────────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ class TaskRepositoryImpl implements TaskRepository {
       dueTo: dueTo,
     );
 
-    if (_isOffline) {
+    if (await _isOffline) {
       final cached = datasource.getCachedTasks(projectId);
       if (cached != null) return Right(Cached.stale(filter.apply(cached)));
       return const Left(
@@ -60,7 +61,7 @@ class TaskRepositoryImpl implements TaskRepository {
 
   @override
   Future<Either<Failure, Cached<TaskEntity>>> getTaskById(String taskId) async {
-    if (_isOffline) {
+    if (await _isOffline) {
       final cached = datasource.getCachedTask(taskId);
       if (cached != null) return Right(Cached.stale(cached));
       return const Left(
@@ -80,7 +81,7 @@ class TaskRepositoryImpl implements TaskRepository {
   Future<Either<Failure, List<TaskComment>>> getComments(String taskId) async {
     // Comments are not cached — an empty thread offline is honest, whereas a
     // stale thread reads as if nothing new was said.
-    if (_isOffline) {
+    if (await _isOffline) {
       return const Left(
         NetworkFailure(message: 'Comments are unavailable offline.'),
       );
@@ -106,7 +107,7 @@ class TaskRepositoryImpl implements TaskRepository {
     DateTime? dueDate,
     List<String> tags = const [],
   }) async {
-    if (_isOffline) return Left(_offlineWrite('create a task'));
+    if (await _isOffline) return Left(_offlineWrite('create a task'));
     try {
       return Right(
         await datasource.createTask(
@@ -137,7 +138,7 @@ class TaskRepositoryImpl implements TaskRepository {
     DateTime? dueDate,
     List<String> tags = const [],
   }) async {
-    if (_isOffline) return Left(_offlineWrite('edit a task'));
+    if (await _isOffline) return Left(_offlineWrite('edit a task'));
     try {
       return Right(
         await datasource.updateTask(
@@ -158,7 +159,7 @@ class TaskRepositoryImpl implements TaskRepository {
 
   @override
   Future<Either<Failure, Unit>> deleteTask(String taskId) async {
-    if (_isOffline) return Left(_offlineWrite('delete a task'));
+    if (await _isOffline) return Left(_offlineWrite('delete a task'));
     try {
       await datasource.deleteTask(taskId);
       return const Right(unit);
@@ -172,7 +173,7 @@ class TaskRepositoryImpl implements TaskRepository {
     required String taskId,
     String? assigneeId,
   }) async {
-    if (_isOffline) return Left(_offlineWrite('reassign a task'));
+    if (await _isOffline) return Left(_offlineWrite('reassign a task'));
     try {
       return Right(
         await datasource.assignTask(taskId: taskId, assigneeId: assigneeId),
@@ -187,7 +188,7 @@ class TaskRepositoryImpl implements TaskRepository {
     required String taskId,
     required String status,
   }) async {
-    if (_isOffline) return Left(_offlineWrite('change a task status'));
+    if (await _isOffline) return Left(_offlineWrite('change a task status'));
     try {
       return Right(
         await datasource.updateTaskStatus(taskId: taskId, status: status),
@@ -202,7 +203,7 @@ class TaskRepositoryImpl implements TaskRepository {
     required String taskId,
     required String priority,
   }) async {
-    if (_isOffline) return Left(_offlineWrite('change a task priority'));
+    if (await _isOffline) return Left(_offlineWrite('change a task priority'));
     try {
       return Right(
         await datasource.updateTaskPriority(taskId: taskId, priority: priority),
@@ -220,7 +221,7 @@ class TaskRepositoryImpl implements TaskRepository {
     required String taskId,
   }) async {
     try {
-      if (_isOffline) {
+      if (await _isOffline) {
         return Left(_offlineWrite('toggle a task favorite'));
       }
       return Right(await datasource.toggleFavorite(taskId: taskId));

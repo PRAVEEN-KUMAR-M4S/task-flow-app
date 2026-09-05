@@ -3,6 +3,8 @@ import 'package:get_it/get_it.dart';
 import 'package:task_flow/core/mock/error_simulator.dart';
 import 'package:task_flow/core/mock/mock_database.dart';
 import 'package:task_flow/core/network/connectivity_cubit.dart';
+import 'package:task_flow/core/network/network_info.dart';
+import 'package:task_flow/core/network/network_info_impl.dart';
 import 'package:task_flow/core/services/biometric_service.dart';
 import 'package:task_flow/core/storage/secure_storage_service.dart';
 import 'package:task_flow/core/theme/theme_cubit.dart';
@@ -75,7 +77,10 @@ Future<void> init() async {
     () => SecureStorageService(storage: sl()),
   );
 
-  sl.registerLazySingleton<ConnectivityCubit>(() => ConnectivityCubit());
+  sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl());
+  sl.registerLazySingleton<ConnectivityCubit>(
+    () => ConnectivityCubit(),
+  );
   sl.registerLazySingleton<ThemeCubit>(() => ThemeCubit(secureStorage: sl()));
 
   // ─── Mock Infrastructure ───────────────────────────────────────────────────
@@ -108,16 +113,16 @@ Future<void> init() async {
     () => AuthRepositoryImpl(datasource: sl(), secureStorage: sl()),
   );
   sl.registerLazySingleton<ProjectRepository>(
-    () => ProjectRepositoryImpl(datasource: sl(), connectivity: sl()),
+    () => ProjectRepositoryImpl(datasource: sl(), networkInfo: sl()),
   );
   sl.registerLazySingleton<TaskRepository>(
-    () => TaskRepositoryImpl(datasource: sl(), connectivity: sl()),
+    () => TaskRepositoryImpl(datasource: sl(), networkInfo: sl()),
   );
   sl.registerLazySingleton<UserRepository>(
     () => UserRepositoryImpl(datasource: sl()),
   );
   sl.registerLazySingleton<NotificationRepository>(
-    () => NotificationRepositoryImpl(datasource: sl(), connectivity: sl()),
+    () => NotificationRepositoryImpl(datasource: sl(), networkInfo: sl()),
   );
 
   // ─── Services ─────────────────────────────────────────────────────────────

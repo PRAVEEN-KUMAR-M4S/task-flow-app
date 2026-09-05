@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:task_flow/core/error/failure_mapper.dart';
 import 'package:task_flow/core/error/failures.dart';
-import 'package:task_flow/core/network/connectivity_cubit.dart';
+import 'package:task_flow/core/network/network_info.dart';
 import 'package:task_flow/core/utils/cached.dart';
 import 'package:task_flow/features/projects/data/datasources/project_local_datasource.dart';
 import 'package:task_flow/features/projects/domain/entities/project.dart';
@@ -9,15 +9,15 @@ import 'package:task_flow/features/projects/domain/repositories/project_reposito
 
 class ProjectRepositoryImpl implements ProjectRepository {
   final ProjectLocalDatasource _datasource;
-  final ConnectivityCubit _connectivity;
+  final NetworkInfo _networkInfo;
 
   ProjectRepositoryImpl({
     required ProjectLocalDatasource datasource,
-    required ConnectivityCubit connectivity,
-  }) : _datasource = datasource,
-       _connectivity = connectivity;
+    required NetworkInfo networkInfo,
+  })  : _datasource = datasource,
+        _networkInfo = networkInfo;
 
-  bool get _isOffline => _connectivity.state.isOffline;
+  Future<bool> get _isOffline async => !await _networkInfo.isConnected;
 
   // ─── Reads ──────────────────────────────────────────────────────────────
 
@@ -25,7 +25,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
   Future<Either<Failure, Cached<List<Project>>>> getProjects({
     required String orgId,
   }) async {
-    if (_isOffline) {
+    if (await _isOffline) {
       final cached = _datasource.getCachedProjects(orgId);
       if (cached != null) return Right(Cached.stale(cached));
       return const Left(
@@ -46,7 +46,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
   @override
   Future<Either<Failure, Cached<Project>>> getProjectById(String id) async {
-    if (_isOffline) {
+    if (await _isOffline) {
       final cached = _datasource.getCachedProject(id);
       if (cached != null) return Right(Cached.stale(cached));
       return const Left(
@@ -71,7 +71,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
     required String description,
     required String createdBy,
   }) async {
-    if (_isOffline) return Left(_offlineWrite('create a project'));
+    if (await _isOffline) return Left(_offlineWrite('create a project'));
     try {
       final result = await _datasource.createProject(
         orgId: orgId,
@@ -93,7 +93,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
     required String description,
     required String status,
   }) async {
-    if (_isOffline) return Left(_offlineWrite('update a project'));
+    if (await _isOffline) return Left(_offlineWrite('update a project'));
     try {
       return Right(
         await _datasource.updateProject(
@@ -110,7 +110,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
   @override
   Future<Either<Failure, Unit>> deleteProject(String id) async {
-    if (_isOffline) return Left(_offlineWrite('delete a project'));
+    if (await _isOffline) return Left(_offlineWrite('delete a project'));
     try {
       await _datasource.deleteProject(id);
       return const Right(unit);
